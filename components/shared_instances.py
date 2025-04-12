@@ -1,3 +1,6 @@
+# this file should not import any other files in the bot to avoid circular imports
+# it is for storing "global" objects that are used across the whole bot
+
 import discord
 from discord.ext import commands
 
@@ -7,8 +10,8 @@ intents.members = True
 intents.dm_messages = True
 
 
-bot = commands.Bot(intents=intents, command_prefix='qpoweiru')
-# i'm using a random prefix here because i want to use only slash commands
-# qpoweiru is an improbable thing to type by accident (letters on opposite sides of the keyboard)
+bot = commands.Bot(intents=intents, command_prefix='drigoydgjamdiuhfnsgihfjsfthsft')
 
 tree = bot.tree
+
+logged_amount = 0

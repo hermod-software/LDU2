@@ -4,31 +4,29 @@ import os
 import sys
 
 from components.shared_instances import bot, tree
+from components.function.logging import log
 
-def print_all_commands():
-    print("commands loaded:")
-    for command in bot.commands:
-        print(command)
-        
+def log_all_commands():
+    commands = bot.tree.get_commands()
+    log(f"loaded {len(commands)} commands{":" if len(commands) else ""} {', '.join([command.name for command in commands])}")  
 
 async def sync_tree():
-    print("syncing tree...")
+    log("syncing tree...")
     await tree.sync()
-    print("tree synced")
-    print_all_commands()
+    log_all_commands()
 
 async def load_all_cogs():
     for file in os.listdir("components/cogs"):
         if file.endswith(".py"):
             await bot.load_extension(f"components.cogs.{file[:-3]}")
-            print(f"loaded cog {file}")
-    print("done loading cogs")
+            log(f"loaded cog {file}")
+    log("done loading cogs")
 
 
 @bot.event
 async def on_ready():
-    print(f"successfully logged in as {bot.user}")
-    print(f"connected to {len(bot.guilds)} guilds: {', '.join([guild.name for guild in bot.guilds])}")
+    log(f"~2successfully logged in as ~1{bot.user}")
+    log(f"~2connected to {len(bot.guilds)} guilds: ~1{', '.join([guild.name for guild in bot.guilds])}")
     await load_all_cogs()
     
     # goes last always
@@ -36,12 +34,12 @@ async def on_ready():
 
 @bot.event
 async def on_guild_join(guild):
-    print(f"joined guild {guild.name}")
+    log(f"joined guild {guild.name}")
     await sync_tree()
 
 @bot.event
 async def on_guild_remove(guild):
-    print(f"removed from guild {guild.name}")
+    log(f"removed from guild {guild.name}")
 
 with open("token.txt", "r") as f:
     token = f.read().strip()
