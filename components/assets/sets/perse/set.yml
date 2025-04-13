@@ -1,0 +1,10 @@
+﻿set_name: perse set
+set_type: Card
+set_date: 20250413 # YYYYMMDD
+author: persekarvaharja
+author_id: 236521614731116545
+items:
+  - name: gameboy
+    image: gameboy.png
+  - name: PSP
+    image: psp.png
