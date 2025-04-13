@@ -1,0 +1,14 @@
+﻿set_name: Testing Cards
+set_type: Card
+set_date: 20250413 # YYYYMMDD
+author: loritsi
+author_id: 237186214791217153
+items:
+  - name: test card 1
+    image: test_card_1.png
+  - name: test card 2
+    image: test_card_2.png
+#  - name: test card 3
+#    image: test_card_3.png
+#  - name: test card 4
+#    image: test_card_4.png

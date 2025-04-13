@@ -14,4 +14,11 @@ bot = commands.Bot(intents=intents, command_prefix='drigoydgjamdiuhfnsgihfjsfths
 
 tree = bot.tree
 
+# logger
+
 logged_amount = 0
+
+# set stuff
+
+set_database = []
+

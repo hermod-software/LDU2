@@ -16,6 +16,8 @@ async def sync_tree():
     log_all_commands()
 
 async def load_all_cogs():
+    log("loading cogs...")
+    # load all cogs in the components/cogs directory
     for file in os.listdir("components/cogs"):
         if file.endswith(".py"):
             await bot.load_extension(f"components.cogs.{file[:-3]}")
@@ -25,6 +27,7 @@ async def load_all_cogs():
 
 @bot.event
 async def on_ready():
+    log (f"~1l~2o~3r~4i~5t~6s~1i ~2b~3o~4t~5 ~r(colourtest)")
     log(f"~2successfully logged in as ~1{bot.user}")
     log(f"~2connected to {len(bot.guilds)} guilds: ~1{', '.join([guild.name for guild in bot.guilds])}")
     await load_all_cogs()
