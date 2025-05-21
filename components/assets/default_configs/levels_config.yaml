@@ -1,0 +1,13 @@
+﻿active: true
+base: 50
+growth_rate: 1.2
+point_range:
+  - 1
+  - 5
+roles: {}
+alert_channel: ~ # will alert in DM by default but can be set to a channel ID
+keys:
+  levelup_message: "you have leveled up to level {level}!"
+  levelup_message_dm: "you have leveled up to level {level} in {guild}!"
+  roleup_message: "you have earned the role {role}!"
+  roleup_message_dm: "you have earned the role {role} in {guild}!"

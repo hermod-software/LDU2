@@ -11,6 +11,7 @@ COLOURS = {
     "6": "\033[36m",      # cyan
     "7": "\033[37m",      # white
 }
+# ~r is reset code
 
 COLOUR_ROTATION = ["7", "6"] # console will cycle through these colours when printing text
 

@@ -17,8 +17,3 @@ tree = bot.tree
 # logger
 
 logged_amount = 0
-
-# set stuff
-
-set_database = []
-
