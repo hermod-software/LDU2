@@ -1,3 +1,5 @@
+
+
 import discord
 from discord.ext import commands
 import os
@@ -5,6 +7,10 @@ import sys
 
 from components.shared_instances import bot, tree
 from components.function.logging import log
+
+log("~7C-LDU")
+log("~7config, levels & discord utility bot")
+log("~72025 lauren k / hermod software")
 
 def log_all_commands():
     commands = bot.tree.get_commands()
@@ -21,7 +27,7 @@ async def load_all_cogs():
     for file in os.listdir("components/cogs"):
         if file.endswith(".py"):
             await bot.load_extension(f"components.cogs.{file[:-3]}")
-            log(f"loaded cog {file}")
+            log(f"~2loaded cog {file}")
     log("done loading cogs")
 
 

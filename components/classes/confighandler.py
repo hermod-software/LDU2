@@ -12,15 +12,18 @@ DEFAULT_CONFIGS_DIR = ROOT_DIR / "components" / "assets" / "default_configs"
 from components.function.logging import log
 from components.function.savedata import set_guild_attribute, get_guild_attribute
 
+COG_LABELS = []
 COG_CONFIGS = {}
 
+CONFIG_REGISTRY = {}
+
 def register_config(label: str):
-    COG_CONFIGS[label] = get_default_config(label)
+    COG_LABELS.append(label)    
     log(f"~2registered config {label}")
 
 def get_default_config(config_name: str):
-    if config_name not in COG_CONFIGS:
-        raise ValueError(f"config {config_name} not registered")
+    if not config_name in COG_LABELS:
+        raise ValueError(f"config {config_name} is not registered")
     
     path = DEFAULT_CONFIGS_DIR / f"{config_name}.yaml"
     if not path.is_file():
@@ -30,7 +33,7 @@ def get_default_config(config_name: str):
     return config
 
 class ConfigHandler:
-    """generic config handler for all configs"""
+    """generic config handler for all guild-level configs"""
 
     def __init__(self, label: str, guild: discord.Guild):
 
@@ -40,6 +43,11 @@ class ConfigHandler:
         self.guild_name = guild.name
         self.config = None
 
+    def register_object(self):
+        """registers the object in the config registry"""
+        if self.label not in CONFIG_REGISTRY:
+            CONFIG_REGISTRY[self.label] = {}
+        CONFIG_REGISTRY[self.label][self.guild_id] = self
 
     def load_config(self):
         default_config = get_default_config(self.label)
@@ -50,6 +58,7 @@ class ConfigHandler:
             config = default_config
         log(f"~2loaded levels config for {self.guild_name}")
         self.default_config = default_config
+        self.config = config
 
     def save_config(self):
         """saves the config for this guild."""
@@ -57,6 +66,7 @@ class ConfigHandler:
         log(f"~2saved levels config for {self.guild_name}")
 
     def get_attribute(self, attribute, fallback=None):
+        """gets an attribute from the config, returns fallback if not found, default fallback is None"""
         if self.config is None:
             self.load_config()
         if attribute in self.config:
@@ -68,4 +78,12 @@ class ConfigHandler:
         else:
             log(f"~1attribute {attribute} not found in config {self.label} for guild {self.guild_name}, returning fallback")
             return fallback
-
+        
+    def set_attribute(self, attribute, value):
+        """sets an attribute in the config. has no qualms about type validity, so check before calling."""
+        if self.config is None:
+            self.load_config()
+        if attribute not in self.config: # ~3 is yellow (warning)
+            log(f"~3attribute {attribute} not found in config {self.label}, it is being created.")
+        self.config[attribute] = value
+        self.save_config()

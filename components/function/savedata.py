@@ -101,4 +101,7 @@ def get_guild_attribute(guild_id: int, key: str):
 
     guild_data_path = os.path.join(guild_data_dir, f"{guild_id}.yaml")
 
-    return read_attribute(guild_data_path, key)
+    try:
+        return read_attribute(guild_data_path, key)
+    except AssertionError:
+        return None
