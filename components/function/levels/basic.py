@@ -2,6 +2,7 @@ import discord
 import math
 
 from components.classes.confighandler import ConfigHandler
+from components.function.savedata import get_guild_attribute
 
 def points_to_level(points: int, guild: discord.Guild, confighandler: ConfigHandler) -> tuple[int, int]:
 
@@ -21,3 +22,17 @@ def points_to_level(points: int, guild: discord.Guild, confighandler: ConfigHand
     remaining_points = total_required - points
 
     return level, remaining_points
+
+def get_guild_leaderboard(guild_id: int) -> list[tuple[int, int]]:
+    points_db = get_guild_attribute(guild_id, "points_data")
+    if points_db is None:
+        return [] # no data
+    leaderboard = sorted(points_db.items(), key=lambda item: item[1], reverse=True)
+    return leaderboard
+
+def get_user_position(guild_id:int, target_user_id:int) -> int:
+    leaderboard = get_guild_leaderboard(guild_id)
+
+    for user_id, _ in leaderboard:
+        if user_id == target_user_id:
+            

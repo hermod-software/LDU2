@@ -28,6 +28,8 @@ class ConfigHandlerCommands(commands.Cog):
         config_pretty = f"```yaml\n{config_pretty}```"
         await interaction.response.send_message(f"config for {guild.name}: {config_pretty}")
 
+    
+
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(ConfigHandlerCommands(bot))

@@ -51,7 +51,10 @@ async def on_guild_join(guild):
 async def on_guild_remove(guild):
     log(f"removed from guild {guild.name}")
 
-with open("token.txt", "r") as f:
-    token = f.read().strip()
+try:
+    with open("token.txt", "r") as f:
+        token = f.read().strip()
+except FileNotFoundError:
+    print("please place your token in a file named token.txt in the same directory with main.py.")
 
 bot.run(token)

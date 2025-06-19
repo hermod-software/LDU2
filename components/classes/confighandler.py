@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT_DIR = Path(__file__).parents[2]
-DEFAULT_CONFIGS_DIR = ROOT_DIR / "components" / "assets" / "default_configs"
+DEFAULT_CONFIGS_DIR = ROOT_DIR / "components" / "resources" / "default_configs"
 
 from components.function.logging import log
 from components.function.savedata import set_guild_attribute, get_guild_attribute

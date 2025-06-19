@@ -32,7 +32,7 @@ class Levels(commands.Cog):
 
         POINTS_DATABASE = {}
         self.load_points_data()
-        self.autosave_task = None  # Track the autosave task
+        self.autosave_task = None  # track the autosave task
         self.startup_task = self.bot.loop.create_task(self._background_startup())
 
     async def _background_startup(self):
@@ -186,7 +186,7 @@ class Levels(commands.Cog):
         await interaction.response.send_message(f"set role {role.name} for level {level}", ephemeral=True)
         log(f"~2set level role {role.name} for level {level} in guild {interaction.guild.name}")
 
-
+    @discord.app_commands.command(name="rank", description="get your rank in the leaderboard.")
         
 
             
