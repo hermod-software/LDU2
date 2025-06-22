@@ -6,8 +6,8 @@ import time
 
 from components.function.logging import log
 from components.function.savedata import set_guild_attribute, get_guild_attribute
-from components.function.levels.basic import points_to_level
 from components.classes.confighandler import ConfigHandler, register_config
+import components.function.levels.basic as lvbsc
 
 POINTS_DATABASE = {}
 recent_speakers = {}
@@ -98,12 +98,12 @@ class Levels(commands.Cog):
         guild_name = message.guild.name
         points_range = confighandler.get_attribute("points_range", fallback=(1, 5))
 
-        user_level_pre = points_to_level(POINTS_DATABASE[message.guild.id].get(message.author.id, 0), guild=message.guild, confighandler=confighandler)
+        user_level_pre = lvbsc.points_to_level(POINTS_DATABASE[message.guild.id].get(message.author.id, 0), guild=message.guild, confighandler=confighandler)
 
         points = random.randint(points_range[0], points_range[1])
         self.increment_user_points(message.author.id, message.guild.id, points)
 
-        user_level_post = points_to_level(POINTS_DATABASE[message.guild.id].get(message.author.id, 0), guild=message.guild, confighandler=confighandler)
+        user_level_post = lvbsc.points_to_level(POINTS_DATABASE[message.guild.id].get(message.author.id, 0), guild=message.guild, confighandler=confighandler)
 
         if user_level_pre[0] != user_level_post[0]:
             await self.level_up(user_level_post[0], message.author, message.guild, confighandler)
@@ -187,7 +187,12 @@ class Levels(commands.Cog):
         log(f"~2set level role {role.name} for level {level} in guild {interaction.guild.name}")
 
     @discord.app_commands.command(name="rank", description="get your rank in the leaderboard.")
-        
+    async def rank(self, interaction: discord.Interaction):
+        pass
+
+    @discord.app_commands.command(name="leaderboard", description="get the leaderboard for the guild.")
+    async def leaderboard(self, interaction: discord.Interaction):
+        confighandler = 0
 
             
 
