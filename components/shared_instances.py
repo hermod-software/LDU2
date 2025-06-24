@@ -5,6 +5,7 @@ version = "proto"
 
 import discord
 from discord.ext import commands
+from pathlib import Path
 
 intents = discord.Intents.default()
 intents.message_content = True
@@ -20,3 +21,6 @@ tree = bot.tree
 # logger
 
 logged_amount = 0
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+TYPEFACE_DIR = PROJECT_ROOT / 'assets' / 'type'

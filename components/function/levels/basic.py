@@ -5,6 +5,7 @@ import operator
 from components.classes.confighandler import ConfigHandler
 from components.function.savedata import get_guild_attribute
 from components.shared_instances import bot
+from components.function.logging import log
 
 def points_to_level(points: int, guild: discord.Guild, confighandler: ConfigHandler) -> tuple[int, int]:
 
@@ -36,8 +37,11 @@ def level_to_points(level: int, confighandler: ConfigHandler) -> int:
 def get_guild_leaderboard(guild_id: int) -> list[tuple[int, int]]:
     points_db = get_guild_attribute(guild_id, "points_data")
     if not isinstance(points_db, dict):
+        log("~1tried to get guild leaderboard, failed due to missing or malformed data")
         return [] # no data or malformed data
+    log("~2attempting to sort leaderboard data")
     leaderboard = sorted(points_db.items(), key=operator.itemgetter(1), reverse=True)
+    log("~2successfully sorted leadboard data")
     return leaderboard
 
 def get_user_position(guild_id: int, target_user_id: int) -> int:
@@ -67,7 +71,7 @@ def get_user_progress(level, total, points_to_next_level, confighandler):
 def format_leaderboard(guild_id: int, confighandler: ConfigHandler) -> list[tuple[str, str, int, int, int, int]]:
     """returns a list of tuples: \n\nDISPLAY NAME, USER NAME, UUID, LEVEL, TOTAL POINTS, POINTS TO NEXT LEVEL"""
     leaderboard = get_guild_leaderboard(guild_id)
-    
+
     formatted_leaderboard = []
     for user_id, points in leaderboard:
         user = bot.get_user(user_id)
@@ -84,3 +88,5 @@ def format_leaderboard(guild_id: int, confighandler: ConfigHandler) -> list[tupl
         entry = (displayname, username, user_id, level, total_points, points_to_next, progress)
 
         formatted_leaderboard.append(entry)
+
+    return formatted_leaderboard

@@ -8,6 +8,7 @@ from components.function.logging import log
 from components.function.savedata import set_guild_attribute, get_guild_attribute
 from components.classes.confighandler import ConfigHandler, register_config
 import components.function.levels.basic as lvbsc
+import components.function.levels.image_generation as lvimg
 
 POINTS_DATABASE = {}
 recent_speakers = {}
@@ -190,9 +191,38 @@ class Levels(commands.Cog):
     async def rank(self, interaction: discord.Interaction):
         pass
 
+
+    # TODO: make themes a proper config thing
+
     @discord.app_commands.command(name="leaderboard", description="get the leaderboard for the guild.")
-    async def leaderboard(self, interaction: discord.Interaction):
-        confighandler = 0
+    async def leaderboard(self, interaction: discord.Interaction, theme: str="red", page:int=1):
+        confighandler = self.confighandlers.get(interaction.guild.id, None)
+        if confighandler is None:
+            log(f"~1leaderboard: could not find config handler for guild {interaction.guild.name}")
+            return
+        colours = ["red", "blue", "green", "pink", "orange", "black", "white"]
+        if theme not in colours:
+            return
+
+        leaderboard = lvbsc.format_leaderboard(
+            guild_id=interaction.guild.id,
+            confighandler=confighandler
+        )
+
+        image_path = lvimg.generate_leaderboard_image(
+            guild_id=interaction.guild.id,
+            guild_name=interaction.guild.name,
+            leaderboard=leaderboard,
+            max_rows=6,
+            page_requested=page,
+            theme=theme
+        )
+
+        image_path = str(image_path)
+
+        file = discord.File(image_path, filename="leaderboard.png")
+
+        await interaction.response.send_message(file=file)
 
             
 

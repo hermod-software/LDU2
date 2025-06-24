@@ -1,18 +1,43 @@
-
 from PIL import Image, ImageDraw, ImageFont
-from math import ceil, pi, sin, cos, tan
-import time
-import os
-import timeit
+import math
+import pathlib
+from datetime import datetime
 
 import components.function.levels.image_constants as C
 import components.function.levels.basic as b
+from components.classes.bounds import Bounds
+from components.function.logging import log
 
 # dear PIL...
 # i HATE YOU
 # but you make this possible
 # happy valentines 21th june 2025
 
+def truncate(text, max_chars, ellipsis="…"):
+    if len(text) <= max_chars:
+        return text
+    if max_chars <= len(ellipsis):
+        return ellipsis[:max_chars]
+    return text[:max_chars - len(ellipsis)] + ellipsis
+
+def rounded_rect(draw, box, radius, fill):
+    x0, y0, x1, y1 = box
+
+    # corner circles
+    draw.pieslice([x0, y0, x0 + 2*radius, y0 + 2*radius], 180, 270, fill=fill)  # top-left
+    draw.pieslice([x1 - 2*radius, y0, x1, y0 + 2*radius], 270, 360, fill=fill)  # top-right
+    draw.pieslice([x0, y1 - 2*radius, x0 + 2*radius, y1], 90, 180, fill=fill)   # bottom-left
+    draw.pieslice([x1 - 2*radius, y1 - 2*radius, x1, y1], 0, 90, fill=fill)     # bottom-right
+
+    # vertical rectangle
+    draw.rectangle([x0, y0 + radius, x1, y1 - radius], fill=fill)
+
+    # horizontal rectangle
+    draw.rectangle([x0 + radius, y0, x1 - radius, y1], fill=fill)
+
+def get_max_chars(font, width):
+    single_char_width = font.getlength("X")
+    return width // single_char_width
 
 
 def get_page(leaderboard, max_rows=5, page_requested=1) -> tuple[list, bool]:
@@ -33,7 +58,7 @@ def get_page(leaderboard, max_rows=5, page_requested=1) -> tuple[list, bool]:
 
     if len(leaderboard) < max_entries:
         # not enough entries to have more than 1 page
-        return leaderboard, True 
+        return leaderboard, list(range(len(leaderboard))), 1
     
     lower_bound = max_entries * (page_requested - 1)    # y * (n - 1)
     upper_bound = lower_bound + max_entries             # l + y
@@ -42,17 +67,18 @@ def get_page(leaderboard, max_rows=5, page_requested=1) -> tuple[list, bool]:
     # we will check beforehand, and slicing does not raise
     # if we go OOB anyway.
 
-    return leaderboard[lower_bound:upper_bound], False 
+    return leaderboard[lower_bound:upper_bound], list(range(lower_bound,upper_bound)), int(math.ceil(len(leaderboard) / max_entries))
     
 # base resolution is 600 x 360
-# we will render at 1800 x 900 and then scale down because PIL will not do anti aliasing :(
+# we will render at 1800 x 1080 and then scale down because PIL will not do anti aliasing :(
 
-# entry format: 0 DISPLAY NAME, 1 USER NAME, 2 UUID, 3 LEVEL, 4 TOTAL POINTS, 5 POINTS TO NEXT LEVEL, 6 PROGRESS
+# entry format: 0 DISPLAY NAME, 1 USER NAME, 2 UUID, 3 LEVEL, 4 TOTAL POINTS, 5 POINTS TO NEXT LEVEL, 6 PROGRESS, 7 USER THEME
 
-def generate_leaderboard_image(guild_id: int, leaderboard: list, max_rows: int, page_requested: int, theme: str = "red") -> str:
+def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list, max_rows: int, page_requested: int, theme: str = "red") -> str:
     "returns the path of the leaderboard image"
-
+    log(f"generating leaderboard image for {guild_name}")
     def generate_progress_circle(entry, lb_index, theme):
+
         if lb_index in C.TOP3:
             text_colour = C.TOP3[lb_index]  
             # get the "reward colour" (gold, silver, bronze) for top 3 users
@@ -94,7 +120,7 @@ def generate_leaderboard_image(guild_id: int, leaderboard: list, max_rows: int, 
             fill=text_colour,
             width=C.A_THICKNESS
         )
-        midpoint = (C.CIRCWIDTH // 2, C.CIRCHEIGHT // 2)
+        midpoint = (C.C_WIDTH // 2, C.C_HEIGHT // 2)
         draw.text(
             xy=(
                 midpoint[0],
@@ -107,17 +133,140 @@ def generate_leaderboard_image(guild_id: int, leaderboard: list, max_rows: int, 
             anchor="mm"
         )
 
-        result = surface.resize(
-            size=(C.REAL_CIRCLE_DIMS[0], C.REAL_CIRCLE_DIMS[1]),
-            resample=Image.LANCZOS
+        return surface, surface.split()[3] # return mask
+
+    def generate_user_unit(entry, lb_index, theme):
+        # entry format: 
+        # 0 DISPLAY NAME,       1 USER NAME, 
+        # 2 UUID,               3 LEVEL, 
+        # 4 TOTAL POINTS,       5 POINTS TO NEXT LEVEL, 
+        # 6 PROGRESS,           7 USER THEME
+        log(f"generating user unit for {entry[1]}")
+        theme_palette = C.PALETTES[theme]
+
+        surface = Image.new("RGBA", (C.LB_USER_UNIT_WIDTH, C.LB_USER_UNIT_HEIGHT))
+        draw = ImageDraw.Draw(surface)
+        surf_bounds = Bounds((0,0,C.LB_USER_UNIT_WIDTH,C.LB_USER_UNIT_HEIGHT))
+
+        user_name = entry[1]
+        level = entry[3]
+        points_to_next_level = entry[5]
+
+        level_circle, level_circle_mask = generate_progress_circle(entry, lb_index, theme)
+
+        rounded_rect(
+            draw=draw,
+            box=surf_bounds.bounds,
+            radius=32,
+            fill=theme_palette["dark"]
         )
 
-        mask = result.split()[3] 
+        circle_topleft = (C.LB_C_PADDING, C.LB_C_PADDING)
 
-        return result, mask
+        surface.paste(level_circle, circle_topleft, level_circle_mask)
 
-    def generate_user_unit(entry, lb_index):
+        top_text = f"{user_name}"
+        top_font = C.BODY
+        top_max_chars = get_max_chars(top_font, C.LB_USER_UNIT_TEXT_WIDTH)
 
+        top_text = truncate(
+            text=top_text,
+            max_chars=top_max_chars
+        )
 
-    lb_page_data = get_page(leaderboard, max_rows, page_requested)
+        draw.text(
+            (C.X_LB_USER_TEXT, surf_bounds.vmiddle - C.LB_USERNAME_V_PADDING),
+            text=top_text,
+            fill=theme_palette["text"],
+            font=top_font,
+            anchor="lb"
+        )
 
+        bottom_text = f"{points_to_next_level} points to next level"
+        bottom_font = C.BODY_LIGHT
+        bottom_max_chars = get_max_chars(bottom_font, C.LB_USER_UNIT_TEXT_WIDTH)
+
+        bottom_text = truncate(
+            text=bottom_text,
+            max_chars=bottom_max_chars
+        )
+
+        draw.text(
+            (C.X_LB_USER_TEXT, surf_bounds.vmiddle + C.LB_BOTTOM_V_PADDING),
+            text=bottom_text,
+            fill=theme_palette["text"],
+            font=bottom_font,
+            anchor="la"
+        )
+
+        return surface, surface.split()[3] # return mask
+
+    # guild_id: int, 
+    # leaderboard: list, 
+    # max_rows: int, 
+    # page_requested: int, 
+    # theme: str = "red"
+
+    max_rows = min(max_rows, 10) # don't go insane with the rows
+
+    this_theme = C.PALETTES[theme].copy()
+
+    lb_page_data, lb_indexes, total_pages = get_page(leaderboard, max_rows, page_requested)
+
+    image_height = C.LB_TITLEBAR_HEIGHT + (C.LB_USER_UNIT_HEIGHT + (C.COLUMN_PADDING[0]//2)) * max_rows
+
+    surface = Image.new(
+        mode="RGB",
+        size=(
+            C.LB_WIDTH,
+            image_height
+        ),
+        color=this_theme["main"]
+    )
+    draw = ImageDraw.Draw(surface)
+
+    title_text = guild_name.upper()
+    title_font = C.TITLE
+    title_max_chars = get_max_chars(title_font, C.LB_TITLE_TEXT_WIDTH)
+
+    truncate(
+        text=title_text,
+        max_chars=title_max_chars
+    )
+
+    draw.text(
+        xy = (
+            C.LB_TITLE_PADDING_L,
+            C.LB_TITLE_PADDING_U
+        ),
+        text=title_text,
+        font=title_font,
+        fill=this_theme["text"]
+    )
+
+    # user unit loop
+
+    for i, entry in enumerate(lb_page_data):
+        ypos = C.LB_TITLEBAR_HEIGHT + ((C.LB_USER_UNIT_HEIGHT + C.COLUMN_PADDING[0]//2) * i)
+        xpos = C.X_LEFT_COLUMN if i < max_rows//2 else C.X_RIGHT_COLUMN
+        
+        user_unit, mask = generate_user_unit(
+            entry=entry,
+            lb_index=lb_indexes[i],
+            theme=theme
+        )
+        surface.paste(user_unit, (xpos, ypos), mask)
+
+    surface = surface.resize(
+        (
+            C.LB_WIDTH // 2,
+            image_height // 2
+        ),
+        resample=Image.LANCZOS
+    )
+
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    savepath = C.TEMP_IMAGE_PATH / f"{guild_id}_{timestamp}.png"
+
+    surface.save(savepath)
+    return savepath

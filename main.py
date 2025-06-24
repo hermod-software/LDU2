@@ -53,6 +53,15 @@ async def on_guild_join(guild):
 async def on_guild_remove(guild):
     log(f"removed from guild {guild.name}")
 
+@bot.event
+async def on_interaction(interaction: discord.Interaction):
+    if interaction.type == discord.InteractionType.application_command:
+        command_name = interaction.data.get("name")
+        user = interaction.user
+        guild = interaction.guild
+
+        log(f"command /{command_name} used by {user} in {guild.name if guild else 'DMs'}")
+
 try:
     with open("token.txt", "r") as f:
         token = f.read().strip()
