@@ -124,7 +124,7 @@ LB_TITLE_META_WIDTH = 345   # region reserved for date & page count
 LB_TITLE_TEXT_WIDTH = LB_WIDTH - LB_TITLE_META_WIDTH
 
 COLUMN_WIDTH = LB_WIDTH // 2    # column is half each of width
-COLUMN_PADDING = (8, 8)         # edge, middle
+COLUMN_PADDING = (8, 4)         # edge, middle
 LB_USER_UNIT_HEIGHT = 180
 LB_USER_UNIT_WIDTH = COLUMN_WIDTH - (COLUMN_PADDING[0] + (COLUMN_PADDING[1] // 2))
 # i.e. | 8 | user unit | 4 | 4 | user | 8 |

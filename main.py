@@ -14,7 +14,7 @@ log("~1(c) 2025 lauren k ~7/ ~4hermod software")
 
 def log_all_commands():
     commands = bot.tree.get_commands()
-    log(f"loaded {len(commands)} commands{":" if len(commands) else ""} {', '.join([command.name for command in commands])}")  
+    log(f"loaded {len(commands)} commands{':' if len(commands) else ''} {', '.join([command.name for command in commands])}")  
 
 async def sync_tree():
     log("syncing tree...")
@@ -65,7 +65,7 @@ async def on_interaction(interaction: discord.Interaction):
 try:
     with open("token.txt", "r") as f:
         token = f.read().strip()
+        bot.run(token)
 except FileNotFoundError:
     print("please place your token in a file named token.txt in the same directory with main.py.")
 
-bot.run(token)

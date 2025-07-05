@@ -74,132 +74,153 @@ def get_page(leaderboard, max_rows=5, page_requested=1) -> tuple[list, bool]:
 
 # entry format: 0 DISPLAY NAME, 1 USER NAME, 2 UUID, 3 LEVEL, 4 TOTAL POINTS, 5 POINTS TO NEXT LEVEL, 6 PROGRESS, 7 USER THEME
 
+def generate_progress_circle(entry, lb_index, theme):
+
+    if lb_index in C.TOP3:
+        text_colour = C.TOP3[lb_index]  
+        # get the "reward colour" (gold, silver, bronze) for top 3 users
+    else:
+        text_colour = C.PALETTES[theme]["text"] 
+        # get the text colour for requested theme
+
+    chars = len(str(entry[3])) # level (4th element)
+    if chars == 1:
+        font = C.BIGNUMBER
+    elif chars == 2:
+        font = C.MEDNUMBER
+    elif chars == 3:
+        font = C.TITLE
+    # the font size should respect the width of the circle
+    # hope and pray to god that nobody ever gets a 4 digit level
+
+    surface = Image.new("RGBA", C.S_DIMS) 
+    # dimensions specied in image_constants
+    draw = ImageDraw.Draw(surface)
+    draw.ellipse(
+        (
+            C.C_OFFSET,
+            C.C_OFFSET,
+            C.C_OFFSET + C.C_WIDTH, 
+            C.C_OFFSET + C.C_HEIGHT
+        ),
+        fill=C.PALETTES[theme]["circle"]
+    )
+    draw.arc(
+        (
+            C.A_OFFSET,
+            C.A_OFFSET,
+            C.S_WIDTH - C.A_OFFSET,
+            C.S_HEIGHT - C.A_OFFSET
+        ),
+        start=C.A_START,
+        end=C.A_START + C.A_END * entry[6],
+        fill=text_colour,
+        width=C.A_THICKNESS
+    )
+    midpoint = (C.C_WIDTH // 2, C.C_HEIGHT // 2)
+    draw.text(
+        xy=(
+            midpoint[0],
+            midpoint[1] - C.T_V_OFFSET 
+            # inverted because up is down in PIL apparently
+        ),
+        text=f"{entry[3]}", # level (4th element)
+        font=font,
+        fill=text_colour,
+        anchor="mm"
+    )
+
+    return surface, surface.split()[3] # return mask
+
+def generate_user_unit(entry, lb_index, theme):
+    # entry format: 
+    # 0 DISPLAY NAME,       1 USER NAME, 
+    # 2 UUID,               3 LEVEL, 
+    # 4 TOTAL POINTS,       5 POINTS TO NEXT LEVEL, 
+    # 6 PROGRESS,           7 USER THEME
+    log(f"generating user unit for {entry[1]}")
+    theme_palette = C.PALETTES[theme]
+
+    surface = Image.new("RGBA", (C.LB_USER_UNIT_WIDTH, C.LB_USER_UNIT_HEIGHT))
+    draw = ImageDraw.Draw(surface)
+    surf_bounds = Bounds((0,0,C.LB_USER_UNIT_WIDTH,C.LB_USER_UNIT_HEIGHT))
+
+    user_name = entry[1]
+    level = entry[3]
+    points_to_next_level = entry[5]
+
+    level_circle, level_circle_mask = generate_progress_circle(entry, lb_index, theme)
+
+    rounded_rect(
+        draw=draw,
+        box=surf_bounds.bounds,
+        radius=32,
+        fill=theme_palette["dark"]
+    )
+
+    circle_topleft = (C.LB_C_PADDING, C.LB_C_PADDING)
+
+    surface.paste(level_circle, circle_topleft, level_circle_mask)
+
+    top_text = f"{user_name}"
+    top_font = C.BODY
+    top_max_chars = get_max_chars(top_font, C.LB_USER_UNIT_TEXT_WIDTH)
+
+    top_text = truncate(
+        text=top_text,
+        max_chars=top_max_chars
+    )
+
+    draw.text(
+        (C.X_LB_USER_TEXT, surf_bounds.vmiddle - C.LB_USERNAME_V_PADDING),
+        text=top_text,
+        fill=theme_palette["text"],
+        font=top_font,
+        anchor="lb"
+    )
+
+    bottom_text = f"{points_to_next_level} points to next level"
+    bottom_font = C.BODY_LIGHT
+    bottom_max_chars = get_max_chars(bottom_font, C.LB_USER_UNIT_TEXT_WIDTH)
+
+    bottom_text = truncate(
+        text=bottom_text,
+        max_chars=bottom_max_chars
+    )
+
+    draw.text(
+        (C.X_LB_USER_TEXT, surf_bounds.vmiddle + C.LB_BOTTOM_V_PADDING),
+        text=bottom_text,
+        fill=theme_palette["text"],
+        font=bottom_font,
+        anchor="la"
+    )
+
+    return surface, surface.split()[3] # return mask
+
+
 def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list, max_rows: int, page_requested: int, theme: str = "red") -> str:
     "returns the path of the leaderboard image"
+
+    debug = False
+
+    if debug:
+        for i in range(30):
+            dummy_entry = [
+                f"user{i+1}",  # DISPLAY NAME
+                f"user{i+1}",  # USER NAME
+                f"uuid-{i+1:03}",  # UUID
+                i + 1,  # LEVEL
+                (i + 1) * 100,  # TOTAL POINTS
+                (i + 1) * 50,  # POINTS TO NEXT LEVEL
+                (i + 1) / 30,  # PROGRESS (0.0 to 1.0)
+                "red" if i % 2 == 0 else "blue"  # USER THEME
+            ]
+            leaderboard.append(dummy_entry)
+            
+
     log(f"generating leaderboard image for {guild_name}")
-    def generate_progress_circle(entry, lb_index, theme):
 
-        if lb_index in C.TOP3:
-            text_colour = C.TOP3[lb_index]  
-            # get the "reward colour" (gold, silver, bronze) for top 3 users
-        else:
-            text_colour = C.PALETTES[theme]["text"] 
-            # get the text colour for requested theme
-
-        chars = len(str(entry[3])) # level (4th element)
-        if chars == 1:
-            font = C.BIGNUMBER
-        elif chars == 2:
-            font = C.MEDNUMBER
-        elif chars == 3:
-            font = C.TITLE
-        # the font size should respect the width of the circle
-        # hope and pray to god that nobody ever gets a 4 digit level
-
-        surface = Image.new("RGBA", C.S_DIMS) 
-        # dimensions specied in image_constants
-        draw = ImageDraw.Draw(surface)
-        draw.ellipse(
-            (
-                C.C_OFFSET,
-                C.C_OFFSET,
-                C.C_OFFSET + C.C_WIDTH, 
-                C.C_OFFSET + C.C_HEIGHT
-            ),
-            fill=C.PALETTES[theme]["circle"]
-        )
-        draw.arc(
-            (
-                C.A_OFFSET,
-                C.A_OFFSET,
-                C.S_WIDTH - C.A_OFFSET,
-                C.S_HEIGHT - C.A_OFFSET
-            ),
-            start=C.A_START,
-            end=C.A_START + C.A_END * entry[6],
-            fill=text_colour,
-            width=C.A_THICKNESS
-        )
-        midpoint = (C.C_WIDTH // 2, C.C_HEIGHT // 2)
-        draw.text(
-            xy=(
-                midpoint[0],
-                midpoint[1] - C.T_V_OFFSET 
-                # inverted because up is down in PIL apparently
-            ),
-            text=f"{entry[3]}", # level (4th element)
-            font=font,
-            fill=text_colour,
-            anchor="mm"
-        )
-
-        return surface, surface.split()[3] # return mask
-
-    def generate_user_unit(entry, lb_index, theme):
-        # entry format: 
-        # 0 DISPLAY NAME,       1 USER NAME, 
-        # 2 UUID,               3 LEVEL, 
-        # 4 TOTAL POINTS,       5 POINTS TO NEXT LEVEL, 
-        # 6 PROGRESS,           7 USER THEME
-        log(f"generating user unit for {entry[1]}")
-        theme_palette = C.PALETTES[theme]
-
-        surface = Image.new("RGBA", (C.LB_USER_UNIT_WIDTH, C.LB_USER_UNIT_HEIGHT))
-        draw = ImageDraw.Draw(surface)
-        surf_bounds = Bounds((0,0,C.LB_USER_UNIT_WIDTH,C.LB_USER_UNIT_HEIGHT))
-
-        user_name = entry[1]
-        level = entry[3]
-        points_to_next_level = entry[5]
-
-        level_circle, level_circle_mask = generate_progress_circle(entry, lb_index, theme)
-
-        rounded_rect(
-            draw=draw,
-            box=surf_bounds.bounds,
-            radius=32,
-            fill=theme_palette["dark"]
-        )
-
-        circle_topleft = (C.LB_C_PADDING, C.LB_C_PADDING)
-
-        surface.paste(level_circle, circle_topleft, level_circle_mask)
-
-        top_text = f"{user_name}"
-        top_font = C.BODY
-        top_max_chars = get_max_chars(top_font, C.LB_USER_UNIT_TEXT_WIDTH)
-
-        top_text = truncate(
-            text=top_text,
-            max_chars=top_max_chars
-        )
-
-        draw.text(
-            (C.X_LB_USER_TEXT, surf_bounds.vmiddle - C.LB_USERNAME_V_PADDING),
-            text=top_text,
-            fill=theme_palette["text"],
-            font=top_font,
-            anchor="lb"
-        )
-
-        bottom_text = f"{points_to_next_level} points to next level"
-        bottom_font = C.BODY_LIGHT
-        bottom_max_chars = get_max_chars(bottom_font, C.LB_USER_UNIT_TEXT_WIDTH)
-
-        bottom_text = truncate(
-            text=bottom_text,
-            max_chars=bottom_max_chars
-        )
-
-        draw.text(
-            (C.X_LB_USER_TEXT, surf_bounds.vmiddle + C.LB_BOTTOM_V_PADDING),
-            text=bottom_text,
-            fill=theme_palette["text"],
-            font=bottom_font,
-            anchor="la"
-        )
-
-        return surface, surface.split()[3] # return mask
 
     # guild_id: int, 
     # leaderboard: list, 
@@ -247,8 +268,8 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
     # user unit loop
 
     for i, entry in enumerate(lb_page_data):
-        ypos = C.LB_TITLEBAR_HEIGHT + ((C.LB_USER_UNIT_HEIGHT + C.COLUMN_PADDING[0]//2) * i)
-        xpos = C.X_LEFT_COLUMN if i < max_rows//2 else C.X_RIGHT_COLUMN
+        ypos = C.LB_TITLEBAR_HEIGHT + ((C.LB_USER_UNIT_HEIGHT + C.COLUMN_PADDING[0]//2) * (i % max_rows))
+        xpos = C.X_LEFT_COLUMN if i < max_rows else C.X_RIGHT_COLUMN
         
         user_unit, mask = generate_user_unit(
             entry=entry,
@@ -267,6 +288,8 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     savepath = C.TEMP_IMAGE_PATH / f"{guild_id}_{timestamp}.png"
+
+    C.TEMP_IMAGE_PATH.mkdir(parents=True, exist_ok=True) # make the temp directory if it doesn't exist
 
     surface.save(savepath)
     return savepath
