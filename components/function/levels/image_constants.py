@@ -5,7 +5,10 @@ import os
 import timeit
 from pathlib import Path
 
-from components.function.logging import log
+try:
+    from components.function.logging import log
+except ImportError:
+    log = print # fallback for logging if the import fails
 
 TEMP_IMAGE_PATH = Path("./savedata/temp/")
 ASSETS_PATH = Path("./assets/")
@@ -74,7 +77,7 @@ TOP3 = {
 # LOADING FONTS
 
 try:  # be mindful of the file type if you are changing the font (ttf, otf, etc). this script is designed for monospace fonts!
-    log("~2all fonts loaded successfully")
+
     BIGNUMBER = ImageFont.truetype(f"{TYPES_PATH}typeface.otf", 100)
     MEDNUMBER = ImageFont.truetype(f"{TYPES_PATH}typeface.otf", 90)
     TITLE = ImageFont.truetype(f"{TYPES_PATH}typeface.otf", 105)
@@ -82,6 +85,7 @@ try:  # be mindful of the file type if you are changing the font (ttf, otf, etc)
     BODY_LIGHT = ImageFont.truetype(f"{TYPES_PATH}light.otf", 45)
     TINY = ImageFont.truetype(f"{TYPES_PATH}typeface.otf", 33)
     TINY_LIGHT = ImageFont.truetype(f"{TYPES_PATH}light.otf", 33)
+    log("~2all fonts loaded successfully")
 except IOError:
     log("~1!! graphics.py could not find typeface.otf or light.otf, using default font for all !!")
     BIGNUMBER = ImageFont.load_default()
@@ -142,3 +146,11 @@ X_LB_USER_TEXT = (LB_C_PADDING * 2) + C_WIDTH + LB_USER_TEXT_PAD
 LB_USER_UNIT_TEXT_WIDTH = LB_USER_UNIT_WIDTH - ((LB_C_PADDING * 3) + C_WIDTH)
 
 # i.e. | cpad | circle | cpad | text | cpad |
+
+RANK_CARD_UNIT_WIDTH_EXTENDER = 250
+
+RANK_CARD_TITLE_WIDTH = LB_TITLE_TEXT_WIDTH
+RANK_CARD_META_WIDTH = LB_TITLE_META_WIDTH
+RANK_CARD_HEIGHT = LB_TITLEBAR_HEIGHT + LB_USER_UNIT_HEIGHT + LB_BOTTOM_V_PADDING 
+RANK_CARD_LEFT_PAD = RANK_CARD_HEIGHT - LB_TITLEBAR_HEIGHT - LB_USER_UNIT_HEIGHT
+RANK_CARD_WIDTH = LB_USER_UNIT_WIDTH + (2*RANK_CARD_LEFT_PAD) + (RANK_CARD_UNIT_WIDTH_EXTENDER)

@@ -132,7 +132,7 @@ def generate_progress_circle(entry, lb_index, theme):
 
     return surface, surface.split()[3] # return mask
 
-def generate_user_unit(entry, lb_index, theme):
+def generate_user_unit(entry, lb_index: int, theme: str, rank_mode=False):
     # entry format: 
     # 0 DISPLAY NAME,       1 USER NAME, 
     # 2 UUID,               3 LEVEL, 
@@ -141,12 +141,16 @@ def generate_user_unit(entry, lb_index, theme):
     log(f"generating user unit for {entry[1]}")
     theme_palette = C.PALETTES[theme]
 
-    surface = Image.new("RGBA", (C.LB_USER_UNIT_WIDTH, C.LB_USER_UNIT_HEIGHT))
+    width = C.LB_USER_UNIT_WIDTH
+    width = width + C.RANK_CARD_UNIT_WIDTH_EXTENDER if rank_mode == True else width
+
+    surface = Image.new("RGBA", (width, C.LB_USER_UNIT_HEIGHT))
     draw = ImageDraw.Draw(surface)
-    surf_bounds = Bounds((0,0,C.LB_USER_UNIT_WIDTH,C.LB_USER_UNIT_HEIGHT))
+    surf_bounds = Bounds((0,0,width,C.LB_USER_UNIT_HEIGHT))
 
     user_name = entry[1]
     level = entry[3]
+    total_points = entry[4]
     points_to_next_level = entry[5]
 
     level_circle, level_circle_mask = generate_progress_circle(entry, lb_index, theme)
@@ -162,7 +166,7 @@ def generate_user_unit(entry, lb_index, theme):
 
     surface.paste(level_circle, circle_topleft, level_circle_mask)
 
-    top_text = f"{user_name}"
+    top_text = f"{user_name}" if not rank_mode else f"{total_points} points"
     top_font = C.BODY
     top_max_chars = get_max_chars(top_font, C.LB_USER_UNIT_TEXT_WIDTH)
 
@@ -180,6 +184,7 @@ def generate_user_unit(entry, lb_index, theme):
     )
 
     bottom_text = f"{points_to_next_level} points to next level"
+    # if rank mode, we want to show the points to next level in brackets
     bottom_font = C.BODY_LIGHT
     bottom_max_chars = get_max_chars(bottom_font, C.LB_USER_UNIT_TEXT_WIDTH)
 
@@ -230,6 +235,8 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
 
     max_rows = min(max_rows, 10) # don't go insane with the rows
 
+    if theme not in C.PALETTES or "text" not in C.PALETTES[theme]:
+        theme = "red"
     this_theme = C.PALETTES[theme].copy()
 
     lb_page_data, lb_indexes, total_pages = get_page(leaderboard, max_rows, page_requested)
@@ -288,6 +295,88 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
 
     timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
     savepath = C.TEMP_IMAGE_PATH / f"{guild_id}_{timestamp}.png"
+
+    C.TEMP_IMAGE_PATH.mkdir(parents=True, exist_ok=True) # make the temp directory if it doesn't exist
+
+    surface.save(savepath)
+    return savepath
+
+    # entry format: 
+    # 0 DISPLAY NAME,       1 USER NAME, 
+    # 2 UUID,               3 LEVEL, 
+    # 4 TOTAL POINTS,       5 POINTS TO NEXT LEVEL, 
+    # 6 PROGRESS,           7 USER THEME
+
+def find_user_in_leaderboard(leaderboard, user_id):
+    """returns the index of the user in the leaderboard, or -1 if not found"""
+    for i, entry in enumerate(leaderboard):
+        if entry[2] == user_id:
+            return entry, i
+    return None, -1
+
+
+def generate_rank_card_image(guild_id: int, guild_name: str, leaderboard: list, user_requested: int, theme: str = "red") -> str:
+    "returns the path of the rank card image"
+    
+    if theme not in C.PALETTES or "text" not in C.PALETTES[theme]:
+        theme = "red"
+
+    surface = Image.new(
+        size=(C.RANK_CARD_WIDTH, C.RANK_CARD_HEIGHT),
+        mode="RGB",
+        color=C.PALETTES[theme]["main"]
+    )
+    draw = ImageDraw.Draw(surface)
+
+    entry, lb_index = find_user_in_leaderboard(leaderboard, user_requested)
+    if entry is None:
+        log(f"~1user {user_requested} not found in leaderboard, can't generate rank card")
+        return None
+
+    title_text = entry[1] # username
+    title_font = C.TITLE
+    title_max_chars = get_max_chars(title_font, C.RANK_CARD_TITLE_WIDTH)
+
+    truncate(
+        text=title_text,
+        max_chars=title_max_chars
+    )
+
+    draw.text(
+        xy = (
+            C.LB_TITLE_PADDING_L,
+            C.LB_TITLE_PADDING_U
+        ),
+        text=title_text,
+        font=title_font,
+        fill=C.PALETTES[theme]["text"]
+    )
+
+    user_unit,mask = generate_user_unit(entry, lb_index, theme, rank_mode=True)
+
+    unit_pos = (
+        C.RANK_CARD_LEFT_PAD,
+        C.LB_TITLEBAR_HEIGHT
+    )
+
+    surface.paste(
+        im=user_unit,
+        box=unit_pos,
+        mask=mask
+    )
+
+    surface = surface.resize(
+        (
+            C.RANK_CARD_WIDTH // 2,
+            C.RANK_CARD_HEIGHT // 2
+        ),
+        resample=Image.LANCZOS
+    )
+
+    user_id = entry[2]
+
+    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    savepath = C.TEMP_IMAGE_PATH / f"{user_id}_{guild_id}_{timestamp}.png"
 
     C.TEMP_IMAGE_PATH.mkdir(parents=True, exist_ok=True) # make the temp directory if it doesn't exist
 

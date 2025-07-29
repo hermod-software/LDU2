@@ -65,7 +65,18 @@ async def on_interaction(interaction: discord.Interaction):
 try:
     with open("token.txt", "r") as f:
         token = f.read().strip()
-        bot.run(token)
 except FileNotFoundError:
-    print("please place your token in a file named token.txt in the same directory with main.py.")
+    with open("token.txt", "w") as f:
+        f.write("")
+    log("~1please paste your bot token into token.txt in the same directory with main.py.")
+    sys.exit()
+
+if not token:
+    log("~1please paste your bot token into token.txt in the same directory with main.py.")
+    sys.exit()
+
+try:
+    bot.run(token)
+except discord.errors.LoginFailure:
+    log("~1invalid token in token.txt. please check that it is valid.")
 

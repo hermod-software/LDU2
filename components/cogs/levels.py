@@ -110,9 +110,6 @@ class Levels(commands.Cog):
             await self.level_up(user_level_post[0], message.author, message.guild, confighandler)
 
         log(f"~2added {points} points to {message.author.name} in {guild_name}")
-        new_points = POINTS_DATABASE[message.guild.id][message.author.id]
-        await message.reply(f"you now have {new_points} points in {guild_name}. your level is {user_level_post[0]} and you need {user_level_post[1]} points to level up.")
-
 
     async def level_up(self, level, user: discord.User, guild: discord.Guild, confighandler: ConfigHandler, role_up=False):
 
@@ -158,7 +155,7 @@ class Levels(commands.Cog):
                 return
         else:
             channel = guild.get_channel(alert_channel)
-            channel.send(alert_message)
+            await channel.send(alert_message)
             log(f"~2sent level up message to {user.name} in {channel.name}")
 
 
@@ -189,20 +186,58 @@ class Levels(commands.Cog):
 
     @discord.app_commands.command(name="rank", description="get your rank in the leaderboard.")
     async def rank(self, interaction: discord.Interaction):
-        pass
+        confighandler = self.confighandlers.get(interaction.guild.id, None)
+        if confighandler is None:
+            log(f"~1rank: could not find config handler for guild {interaction.guild.name}")
+            await interaction.response.send_message("there was an error with this guild's confighandler", ephemeral=True)
+            return
+
+        leaderboard = lvbsc.format_leaderboard(
+            guild_id=interaction.guild.id,
+            confighandler=confighandler
+        )
+
+        user_id = interaction.user.id
+        user_entry = None
+        for entry in leaderboard:
+            if entry[2] == user_id:
+                user_entry = entry
+                break
+
+        if not user_entry:
+            await interaction.response.send_message("you are not on the leaderboard yet!", ephemeral=True)
+            return
+
+        colours = ["red", "blue", "green", "pink", "orange", "black", "grey"]
+        theme = random.choice(colours)
+
+        image_path = lvimg.generate_rank_card_image(
+            guild_id=interaction.guild.id,
+            guild_name=interaction.guild.name,
+            leaderboard=leaderboard,
+            user_requested=user_id,
+            theme=theme
+        )
+
+        if not image_path:
+            await interaction.response.send_message("sorry, there was an error trying to generate your rank card.", ephemeral=True)
+            return
+
+        image_path = str(image_path)
+        file = discord.File(image_path, filename="rank_card.png")
+        await interaction.response.send_message(file=file)
 
 
     # TODO: make themes a proper config thing
 
     @discord.app_commands.command(name="leaderboard", description="get the leaderboard for the guild.")
-    async def leaderboard(self, interaction: discord.Interaction, theme: str="red", page:int=1):
+    async def leaderboard(self, interaction: discord.Interaction, page:int=1):
         confighandler = self.confighandlers.get(interaction.guild.id, None)
         if confighandler is None:
             log(f"~1leaderboard: could not find config handler for guild {interaction.guild.name}")
             return
-        colours = ["red", "blue", "green", "pink", "orange", "black", "white"]
-        if theme not in colours:
-            return
+        colours = ["red", "blue", "green", "pink", "orange", "black", "grey"]
+        theme = random.choice(colours)
 
         leaderboard = lvbsc.format_leaderboard(
             guild_id=interaction.guild.id,
