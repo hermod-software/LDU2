@@ -37,7 +37,7 @@ def rounded_rect(draw, box, radius, fill):
 
 def get_max_chars(font, width):
     single_char_width = font.getlength("X")
-    return width // single_char_width
+    return int(width // single_char_width)
 
 
 def get_page(leaderboard, max_rows=5, page_requested=1) -> tuple[list, bool]:
