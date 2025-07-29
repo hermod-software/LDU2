@@ -184,6 +184,55 @@ class Levels(commands.Cog):
         await interaction.response.send_message(f"set role {role.name} for level {level}", ephemeral=True)
         log(f"~2set level role {role.name} for level {level} in guild {interaction.guild.name}")
 
+    @discord.app_commands.command(name="unset_level_role", description="clear a level of rewards")
+    async def unset_level_role(self, interaction: discord.Interaction, level: int):
+        confighandler = self.confighandlers.get(interaction.guild.id, None)
+        if confighandler is None:
+            log(f"~1set_level_role: could not find config handler for guild {interaction.guild.name}")
+            return
+        
+        if level <= 1:
+            await interaction.response.send_message("level must be greater than 1", ephemeral=True)
+            return
+        
+        roles = confighandler.get_attribute("levels", fallback={})
+        if level in roles:
+            del roles[level]
+            await interaction.response.send_message(f"level {level} has been cleared of reward", ephemeral=True)
+            log(f"~2cleared level role for level {level} in guild {interaction.guild.name}")
+            confighandler.set_attribute("levels", roles)
+            return
+        else:
+            await interaction.response.send_message(f"that level doesn't have a role reward, so it couldn't be deleted.", ephemeral=True)
+            log(f"~2tried to clear level role for level {level} in guild {interaction.guild.name}, but there was no role to clear.")
+        
+    @discord.app_commands.command(name="get_role_list", description="get the list of role rewards for this server")
+    async def get_role_list(self, interaction: discord.Interaction):
+        confighandler = self.confighandlers.get(interaction.guild.id, None)
+        if confighandler is None:
+            log(f"~1get_role_list: could not find config handler for guild {interaction.guild.name}")
+            await interaction.response.send_message("there was an error with this guild's confighandler", ephemeral=True)
+            return
+
+        roles = confighandler.get_attribute("levels", fallback={})
+        if not roles:
+            await interaction.response.send_message("no level role rewards are set for this server.", ephemeral=True)
+            return
+
+        lines = []
+        for lvl, role_id in sorted(roles.items()):
+            role = interaction.guild.get_role(role_id)
+            if role:
+                lines.append(f"Level {lvl}: {role.mention}")
+            else:
+                lines.append(f"Level {lvl}: (role not found, id: {role_id})")
+
+        msg = "level role rewards for this server:\n" + "\n".join(lines)
+        await interaction.response.send_message(msg)
+        
+
+
+
     @discord.app_commands.command(name="rank", description="get your rank in the leaderboard.")
     async def rank(self, interaction: discord.Interaction):
         confighandler = self.confighandlers.get(interaction.guild.id, None)
