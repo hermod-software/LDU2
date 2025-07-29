@@ -38,7 +38,7 @@ async def on_ready():
     guilds_text = "guilds" if len(bot.guilds) != 1 else "guild"
     log(f"~2connected to {len(bot.guilds)} {guilds_text}: ~1{', '.join([guild.name for guild in bot.guilds])}")
     await load_all_cogs()
-    activity = discord.Activity(name=f"C-LDU {version}", type=discord.ActivityType.playing)
+    activity = discord.Activity(name=f"{version}", type=discord.ActivityType.playing)
     await bot.change_presence(activity=activity)
     
     # goes last always
