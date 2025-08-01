@@ -7,10 +7,10 @@ import time
 from components.function.logging import log
 from components.function.savedata import set_guild_attribute, get_guild_attribute
 from components.classes.confighandler import ConfigHandler, register_config
+from components.shared_instances import POINTS_DATABASE
 import components.function.levels.basic as lvbsc
 import components.function.levels.image_generation as lvimg
 
-POINTS_DATABASE = {}
 recent_speakers = {}
 
 async def save_points_regular(interval=15):
@@ -81,13 +81,18 @@ class Levels(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
+
+        # validation
+
         if message.author.bot or message.guild is None:
             return
-
+        
         confighandler = self.confighandlers.get(message.guild.id, None)
         if confighandler is None:
             log(f"~1could not find config handler for guild {message.guild.name}")
             return
+
+        # check if the user has sent a message within the cooldown
 
         timestamp = time.time()
         cooldown = confighandler.get_attribute("message_cooldown", fallback=30)
@@ -96,20 +101,19 @@ class Levels(commands.Cog):
         if last_spoke is not None and timestamp - last_spoke < cooldown:
             return
         recent_speakers[message.author.id] = timestamp
-        guild_name = message.guild.name
+
+        # get the points range from the guild's config
+
         points_range = confighandler.get_attribute("points_range", fallback=(1, 5))
 
-        user_level_pre = lvbsc.points_to_level(POINTS_DATABASE[message.guild.id].get(message.author.id, 0), guild=message.guild, confighandler=confighandler)
+        # increment the points and check if a new role needs to be given
 
-        points = random.randint(points_range[0], points_range[1])
-        self.increment_user_points(message.author.id, message.guild.id, points)
+        new_points, has_levelled_up = lvbsc.increment_user_points(guild=message.guild, user=message.author, amount=points_range, confighandler=confighandler)
+        new_level = lvbsc.points_to_level(new_points, confighandler)
 
-        user_level_post = lvbsc.points_to_level(POINTS_DATABASE[message.guild.id].get(message.author.id, 0), guild=message.guild, confighandler=confighandler)
+        if has_levelled_up:
+            await self.level_up(new_level, message.author, message.guild, confighandler)
 
-        if user_level_pre[0] != user_level_post[0]:
-            await self.level_up(user_level_post[0], message.author, message.guild, confighandler)
-
-        log(f"~2added {points} points to {message.author.name} in {guild_name}")
 
     async def level_up(self, level, user: discord.User, guild: discord.Guild, confighandler: ConfigHandler, role_up=False):
 

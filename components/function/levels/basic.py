@@ -1,13 +1,14 @@
 import discord
 import math
 import operator
+import random
 
 from components.classes.confighandler import ConfigHandler
 from components.function.savedata import get_guild_attribute
-from components.shared_instances import bot
+from components.shared_instances import bot, POINTS_DATABASE
 from components.function.logging import log
 
-def points_to_level(points: int, guild: discord.Guild, confighandler: ConfigHandler) -> tuple[int, int]:
+def points_to_level(points: int, confighandler: ConfigHandler) -> tuple[int, int]:
 
     base = confighandler.get_attribute("base")
     growth_rate = confighandler.get_attribute("growth_rate")
@@ -90,3 +91,75 @@ def format_leaderboard(guild_id: int, confighandler: ConfigHandler) -> list[tupl
         formatted_leaderboard.append(entry)
 
     return formatted_leaderboard
+
+def is_valid_range(given_range):
+    if not isinstance(given_range, tuple):
+        return False
+    if not len(given_range) == 2:
+        return False
+    both_are_int = ( isinstance(given_range[0], int) and isinstance(given_range[1], int) )
+    return both_are_int
+        
+
+def increment_user_points(guild:discord.Guild, user:discord.User, amount, confighandler:ConfigHandler) -> tuple[int, bool]:
+    """increment a users points with either a set integer amount or a integer range (amount can be int or a valid 2 integer tuple). 
+    returns the new point value and a bool: True if the user has levelled up and False otherwise."""
+
+    # type checking
+
+    if isinstance(amount, tuple):
+        if is_valid_range(amount):
+            amount = random.randint(amount)
+        else:
+            raise TypeError(f"tuple value {amount} passed to increment_user_points is not a valid range")
+    elif not isinstance(int):
+        raise TypeError(f"value {amount} passed to increment_user_points is not an integer or valid tuple range")
+    
+    # validate existence of user & guild
+
+    guild_id = guild.id
+    guild_name = guild.name
+    user_id = user.id
+    user_name = user.name
+
+    if guild_id not in POINTS_DATABASE:
+        POINTS_DATABASE[guild_id] = {}
+    if user_id not in POINTS_DATABASE[guild_id]:
+        POINTS_DATABASE[guild_id][user_id] = 0
+
+    # get their current level
+
+    user_points_before = POINTS_DATABASE[guild_id][user_id]
+    user_level_before  = points_to_level(user_points_before, confighandler)
+
+    # increment the user's point value
+
+    POINTS_DATABASE[guild_id][user_id] += amount
+
+    # get their new level
+
+    user_points_after = POINTS_DATABASE[guild_id][user_id]
+    user_level_after = points_to_level(user_points_after, confighandler)
+
+    # check if they have levelled up
+
+    has_levelled_up = user_level_before != user_level_after
+
+    log(f"~2added {amount} points to {user_name} in {guild_name}")
+
+    return user_points_after, has_levelled_up
+
+
+
+
+
+    
+    
+
+
+# what do we do when we are giving a user points?
+#
+# 1. get their points before incrementing and calc their level
+# 2. incr their points with the old func
+# 3. get their points after incrementing and calc their level again
+# 4. if their level changed, run the level up function to check if they need a new role
