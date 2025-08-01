@@ -144,7 +144,7 @@ def increment_user_points(guild:discord.Guild, user:discord.User, amount, config
 
     # check if they have levelled up
 
-    has_levelled_up = user_level_before != user_level_after
+    has_levelled_up = user_level_after > user_level_before
 
     log(f"~2added {amount} points to {user_name} in {guild_name}")
 
