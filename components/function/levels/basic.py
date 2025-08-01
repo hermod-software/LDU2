@@ -109,10 +109,10 @@ def increment_user_points(guild:discord.Guild, user:discord.User, amount, config
 
     if isinstance(amount, tuple):
         if is_valid_range(amount):
-            amount = random.randint(amount)
+            amount = random.randint(*amount)
         else:
             raise TypeError(f"tuple value {amount} passed to increment_user_points is not a valid range")
-    elif not isinstance(int):
+    elif not isinstance(amount, int):
         raise TypeError(f"value {amount} passed to increment_user_points is not an integer or valid tuple range")
     
     # validate existence of user & guild

@@ -17,6 +17,14 @@ COG_CONFIGS = {}
 
 CONFIG_REGISTRY = {}
 
+def tuple_constructor(loader, node):
+    return tuple(loader.construct_sequence(node))
+
+yaml.SafeLoader.add_constructor(
+    yaml.resolver.BaseResolver.DEFAULT_SEQUENCE_TAG,
+    tuple_constructor
+)
+
 def register_config(label: str):
     COG_LABELS.append(label)    
     log(f"~2registered config {label}")
@@ -33,6 +41,7 @@ def get_default_config(config_name: str):
     return config
 
 class ConfigHandler:
+
     """generic config handler for all guild-level configs"""
 
     def __init__(self, label: str, guild: discord.Guild):
