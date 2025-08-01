@@ -84,7 +84,7 @@ def format_leaderboard(guild_id: int, confighandler: ConfigHandler) -> list[tupl
         displayname = user.display_name
         username = user.name
         total_points = int(points)
-        level, points_to_next = points_to_level(points, bot.get_guild(guild_id), confighandler)
+        level, points_to_next = points_to_level(points, confighandler)
         progress = get_user_progress(level, total_points, points_to_next, confighandler)
 
         entry = (displayname, username, user_id, level, total_points, points_to_next, progress)
