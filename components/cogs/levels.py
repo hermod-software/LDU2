@@ -115,18 +115,42 @@ class Levels(commands.Cog):
             await self.level_up(new_level, message.author, message.guild, confighandler)
 
 
-    async def level_up(self, level, user: discord.User, guild: discord.Guild, confighandler: ConfigHandler, role_up=False):
+    async def level_up(self, level, user: discord.User, guild: discord.Guild, confighandler: ConfigHandler):
 
         guild_name = guild.name
 
+
+        # check if the user should be getting a new role here
+
+        potential_rewards = confighandler.get_attribute("levels", fallback=None)
+        if potential_rewards is not None:
+            if level in potential_rewards:
+                role_up = True
+            else:
+                role_up = False
+        else:
+            role_up = False
+
+        # get strings for each situation
+
+        config_keys = confighandler.get_attribute("keys")
+
+        levelup_message_dm = config_keys["levelup_message_dm"]
+        levelup_message = config_keys["levelup_message"]
+        roleup_message_dm = config_keys["roleup_message_dm"]
+        roleup_message = config_keys["roleup_message"]
+
+        # decide which string to use
+
         alert_channel = confighandler.get_attribute("alert_channel")
 
-        dm = False
-        if alert_channel is None:
-            dm = True
-            alert_message = confighandler.get_attribute("levelup_message_dm") if not role_up else confighandler.get_attribute("roleup_message_dm")
+        dm = ( alert_channel is None ) # passed through a variable so we can check later
+        if dm:
+            alert_message = roleup_message_dm if role_up else levelup_message_dm
         else:
-            alert_message = confighandler.get_attribute("levelup_message") if not role_up else confighandler.get_attribute("roleup_message")
+            alert_message = roleup_message if role_up else levelup_message
+
+        # try our best to give the role if applicable
 
         if role_up:
             roles = confighandler.get_attribute("levels")
@@ -145,6 +169,8 @@ class Levels(commands.Cog):
             except discord.Forbidden:
                 log(f"~1could not add role {role.name} to {user.name} in {guild_name}, bot does not have permission")
                 return
+
+        # format the strings and try our best to send them to the user
 
         alert_message = alert_message.replace("{user}", user.mention)
         alert_message = alert_message.replace("{level}", str(level))
@@ -212,15 +238,16 @@ class Levels(commands.Cog):
         
     @discord.app_commands.command(name="get_role_list", description="get the list of role rewards for this server")
     async def get_role_list(self, interaction: discord.Interaction):
+        allowed_mentions = discord.AllowedMentions.none()
         confighandler = self.confighandlers.get(interaction.guild.id, None)
         if confighandler is None:
             log(f"~1get_role_list: could not find config handler for guild {interaction.guild.name}")
-            await interaction.response.send_message("there was an error with this guild's confighandler", ephemeral=True)
+            await interaction.response.send_message("there was an error with this guild's confighandler", ephemeral=True, allowed_mentions=allowed_mentions)
             return
 
         roles = confighandler.get_attribute("levels", fallback={})
         if not roles:
-            await interaction.response.send_message("no level role rewards are set for this server.", ephemeral=True)
+            await interaction.response.send_message("no level role rewards are set for this server.", ephemeral=True, allowed_mentions=allowed_mentions)
             return
 
         lines = []
@@ -232,7 +259,7 @@ class Levels(commands.Cog):
                 lines.append(f"Level {lvl}: (role not found, id: {role_id})")
 
         msg = "level role rewards for this server:\n" + "\n".join(lines)
-        await interaction.response.send_message(msg)
+        await interaction.response.send_message(msg, allowed_mentions=allowed_mentions)
         
 
 
