@@ -108,6 +108,9 @@ def increment_user_points(guild:discord.Guild, user:discord.User, amount, config
 
     # type checking
 
+    if isinstance(amount, list):
+        amount = tuple(amount)
+
     if isinstance(amount, tuple):
         if is_valid_range(amount):
             amount = random.randint(*amount)

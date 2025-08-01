@@ -99,6 +99,7 @@ class Levels(commands.Cog):
         # get the points range from the guild's config
 
         points_range = confighandler.get_attribute("points_range", fallback=(1, 5))
+        points_range = tuple(points_range)
 
         # increment the points and check if a new role needs to be given
 
