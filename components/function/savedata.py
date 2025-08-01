@@ -65,7 +65,10 @@ def get_guild_member_attribute(guild_id: int, member_id: int, key: str):
 
     user_data_path = os.path.join(user_data_dir, str(guild_id), f"{member_id}.yaml")
 
-    return read_attribute(user_data_path, key)
+    try:
+        return read_attribute(user_data_path, key)
+    except AssertionError:
+        return None
 
 def get_attribute_for_all_members(guild_id: int, key: str) -> dict:
     """gets an attribute value for all users in a guild.\n\nreturns a dictionary of user ids and values.\n\nusers without the attribute are not included"""

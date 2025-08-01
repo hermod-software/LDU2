@@ -5,7 +5,7 @@ import random
 import time
 
 from components.function.logging import log
-from components.function.savedata import set_guild_attribute, get_guild_attribute
+from components.function.savedata import set_guild_attribute, get_guild_attribute, get_guild_member_attribute, set_guild_member_attribute
 from components.classes.confighandler import ConfigHandler, register_config
 from components.shared_instances import POINTS_DATABASE
 import components.function.levels.basic as lvbsc
@@ -20,7 +20,7 @@ async def save_points_regular(interval=15):
         for guild_id, data in POINTS_DATABASE.items():
             if data:
                 set_guild_attribute(guild_id, "points_data", data)
-        log(f"~2saved points data for {len(POINTS_DATABASE)} guilds")
+        #log(f"~2saved points data for {len(POINTS_DATABASE)} guilds")
 
 
 
@@ -114,16 +114,18 @@ class Levels(commands.Cog):
         guild_name = guild.name
 
 
-        # check if the user should be getting a new role here
-
         potential_rewards = confighandler.get_attribute("levels", fallback=None)
+        roles_to_give = []
+        
         if potential_rewards is not None:
-            if level in potential_rewards:
-                role_up = True
-            else:
-                role_up = False
-        else:
-            role_up = False
+            for check_level in range(1, level + 1):
+                if check_level in potential_rewards:
+                    role_id = potential_rewards[check_level]
+                    role = guild.get_role(role_id)
+                    if role and role not in user.roles:
+                        roles_to_give.append((check_level, role))
+        
+        role_up = len(roles_to_give) > 0
 
         # get strings for each situation
 
@@ -145,43 +147,45 @@ class Levels(commands.Cog):
             alert_message = roleup_message if role_up else levelup_message
             alert_message = f"{user.mention} {alert_message}"
 
+        alert_message = f"{alert_message}\n-# you can toggle these messages by doing /shut_up"
+
         # try our best to give the role if applicable
 
         if role_up:
-            roles = confighandler.get_attribute("levels")
-            role = roles.get(level, None)
-            if role is None:
-                log(f"~1level_up was called with role_up=True but no role found for level {level} in guild {guild_name}")
-                return
-            try:
-                role = guild.get_role(role)
-            except discord.NotFound:
-                log(f"~1level_up was called with role_up=True but role {role} not found in guild {guild_name}")
-                return
-            try:
-                await user.add_roles(role)
-                log(f"~2added role {role.name} to {user.name} in {guild_name}")
-            except discord.Forbidden:
-                log(f"~1could not add role {role.name} to {user.name} in {guild_name}, bot does not have permission")
-                return
+            for check_level, role in roles_to_give:
+                try:
+                    await user.add_roles(role)
+                    log(f"~2added role {role.name} to {user.name} in {guild_name}")
+                except discord.Forbidden:
+                    log(f"~1could not add role {role.name} to {user.name} in {guild_name}, bot does not have permission")
+                except Exception as e:
+                    log(f"~1error adding role {role.name} to {user.name} in {guild_name}: {e}")
+
+        # check if the user has toggled off level up pings
+
+        shutup = get_guild_member_attribute(guild.id, user.id, "shutup")
 
         # format the strings and try our best to send them to the user
 
-        alert_message = alert_message.replace("{user}", user.mention)
-        alert_message = alert_message.replace("{level}", str(level))
-        alert_message = alert_message.replace("{guild}", guild_name)
+        if not shutup:
+            alert_message = alert_message.replace("{user}", user.mention)
+            alert_message = alert_message.replace("{level}", str(level))
+            alert_message = alert_message.replace("{guild}", guild_name)
+            if role_up:
+                highest_role = max(roles_to_give, key=lambda x: x[0])[1]
+                alert_message = alert_message.replace("{role}", highest_role.name)
 
-        if dm:
-            try:
-                await user.send(alert_message)
-                log(f"~2sent level up message to {user.name} in DM")
-            except discord.Forbidden:
-                log(f"~1could not send level up message to {user.name} in DM, user has DMs disabled")
-                return
-        else:
-            channel = guild.get_channel(alert_channel)
-            await channel.send(alert_message)
-            log(f"~2sent level up message to {user.name} in {channel.name}")
+            if dm:
+                try:
+                    await user.send(alert_message)
+                    log(f"~2sent level up message to {user.name} in DM")
+                except discord.Forbidden:
+                    log(f"~1could not send level up message to {user.name} in DM, user has DMs disabled")
+                    return
+            else:
+                channel = guild.get_channel(alert_channel)
+                await channel.send(alert_message)
+                log(f"~2sent level up message to {user.name} in {channel.name}")
 
     @discord.app_commands.default_permissions(manage_roles=True)
     @discord.app_commands.command(name="add_points", description="add points to a user")
@@ -198,6 +202,22 @@ class Levels(commands.Cog):
             await self.level_up(new_level, user, interaction.guild, confighandler)
 
         await interaction.response.send_message(f"added {amount} points to {user.mention}", allowed_mentions=discord.AllowedMentions.none())
+
+    @discord.app_commands.command(name="shut_up", description="toggle levelup/roleup pings/dms")
+    async def shut_up(self, interaction: discord.Interaction):
+        guild_id = interaction.guild_id
+        user_id = interaction.user.id
+
+        current_toggle = get_guild_member_attribute(guild_id, user_id, "shutup")
+        current_toggle = False if current_toggle == None else current_toggle
+
+        set_guild_member_attribute(guild_id, user_id, key="shutup", value=(not current_toggle))
+
+        if not current_toggle: # was false, now true
+            await interaction.response.send_message(f"i will send you levelup messages!")
+        else: # was true, now false
+            await interaction.response.send_message(f"i won't send you levelup messages anymore :frown2:")
+        
 
     @discord.app_commands.default_permissions(manage_channels=True)
     @discord.app_commands.command(name="set_levelup_channel", description="set the channel that levelup messages are sent in")
