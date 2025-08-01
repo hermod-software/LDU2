@@ -1,7 +1,7 @@
 # this file should not import any other files in the bot to avoid circular imports
 # it is for storing "global" objects that are used across the whole bot
 
-version = "proto-v1.1.0"
+version = "v1.1.2"
 
 import discord
 from discord.ext import commands

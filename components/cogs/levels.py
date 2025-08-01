@@ -162,9 +162,12 @@ class Levels(commands.Cog):
                 except Exception as e:
                     log(f"~1error adding role {role.name} to {user.name} in {guild_name}: {e}")
 
-        # check if the user has toggled off level up pings
+        # check if the user has toggled off level up pings or if the server setting is off
 
         shutup = get_guild_member_attribute(guild.id, user.id, "shutup")
+        servershutup = confighandler.get_attribute("servershutup", fallback=False)
+
+        shutup = ( shutup or servershutup )
 
         # format the strings and try our best to send them to the user
 
@@ -218,9 +221,26 @@ class Levels(commands.Cog):
         set_guild_member_attribute(guild_id, user_id, key="shutup", value=(not current_toggle))
 
         if not current_toggle: # was false, now true
-            await interaction.response.send_message(f"i won't send you levelup messages anymore ☹️")
+            await interaction.response.send_message(f"i won't send you levelup messages anymore")
         else: # was true, now false
             await interaction.response.send_message(f"i will send you levelup messages!")
+
+    @discord.app_commands.command(name="server_shut_up", description="toggle levelup/roleup pings/dms for the entire server")
+    async def server_shut_up(self, interaction: discord.Interaction):
+        confighandler = self.confighandlers.get(interaction.guild.id, None)
+        if confighandler is None:
+            log(f"~1server_shut_up: could not find config handler for guild {interaction.guild.name}")
+            await interaction.response.send_message("there was an error with this guild's confighandler", ephemeral=True)
+            return
+
+        current_toggle = confighandler.get_attribute("servershutup", fallback=False)
+
+        confighandler.set_attribute("servershutup", not current_toggle)
+
+        if not current_toggle: # was false, now true
+            await interaction.response.send_message(f"i won't send levelup messages in this server anymore")
+        else: # was true, now false
+            await interaction.response.send_message(f"i will send levelup messages in this server!")
         
 
     @discord.app_commands.default_permissions(manage_channels=True)
