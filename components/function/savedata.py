@@ -43,7 +43,7 @@ def set_attribute(yaml_path: str, key: str, value=True) -> None:
     data[key] = value
 
     with open(yaml_path, "w", encoding="utf-8") as f:
-        yaml.dump(data, f)
+        yaml.dump(data, f, Dumper=yaml.SafeDumper)
 
 # USER DATA ============================================================================================================
 

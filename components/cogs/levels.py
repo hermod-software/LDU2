@@ -18,8 +18,9 @@ async def save_points_regular(interval=15):
     while True:
         await asyncio.sleep(interval)
         for guild_id, data in POINTS_DATABASE.items():
-            set_guild_attribute(guild_id, "points_data", data)
-        #log(f"~2saved points data for {len(POINTS_DATABASE)} guilds")
+            if data:
+                set_guild_attribute(guild_id, "points_data", data)
+        log(f"~2saved points data for {len(POINTS_DATABASE)} guilds")
 
 
 
@@ -31,7 +32,6 @@ class Levels(commands.Cog):
         self.generate_handlers()
         register_config("levels_config")
 
-        POINTS_DATABASE = {}
         self.load_points_data()
         self.autosave_task = None  # track the autosave task
         self.startup_task = self.bot.loop.create_task(self._background_startup())
@@ -53,6 +53,7 @@ class Levels(commands.Cog):
             self.confighandlers[guild.id] = confighandler
 
     def load_points_data(self):
+        global POINTS_DATABASE
         guilds = self.bot.guilds
         for guild in guilds:
             data = get_guild_attribute(guild.id, "points_data")
@@ -71,13 +72,6 @@ class Levels(commands.Cog):
     async def on_guild_remove(self, guild: discord.Guild):
         log(f"~2removed from guild {guild.name}, regenerating handlers...")
         self.generate_handlers()
-
-    def increment_user_points(self, user_id: int, guild_id: int, points: int):
-        if guild_id not in POINTS_DATABASE:
-            POINTS_DATABASE[guild_id] = {}
-        if user_id not in POINTS_DATABASE[guild_id]:
-            POINTS_DATABASE[guild_id][user_id] = 0
-        POINTS_DATABASE[guild_id][user_id] += points
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -109,7 +103,7 @@ class Levels(commands.Cog):
         # increment the points and check if a new role needs to be given
 
         new_points, has_levelled_up = lvbsc.increment_user_points(guild=message.guild, user=message.author, amount=points_range, confighandler=confighandler)
-        new_level = lvbsc.points_to_level(new_points, confighandler)
+        new_level, _ = lvbsc.points_to_level(new_points, confighandler)
 
         if has_levelled_up:
             await self.level_up(new_level, message.author, message.guild, confighandler)
@@ -149,6 +143,7 @@ class Levels(commands.Cog):
             alert_message = roleup_message_dm if role_up else levelup_message_dm
         else:
             alert_message = roleup_message if role_up else levelup_message
+            alert_message = f"{user.mention} {alert_message}"
 
         # try our best to give the role if applicable
 
@@ -188,7 +183,51 @@ class Levels(commands.Cog):
             await channel.send(alert_message)
             log(f"~2sent level up message to {user.name} in {channel.name}")
 
+    @discord.app_commands.default_permissions(manage_roles=True)
+    @discord.app_commands.command(name="add_points", description="add points to a user")
+    async def add_points(self, interaction: discord.Interaction, user: discord.User, amount: int):
+        confighandler = self.confighandlers.get(interaction.guild.id, None)
+        if confighandler is None:
+            log(f"~1add_points: could not find config handler for guild {interaction.guild.name}")
+            return
 
+        new_points, has_levelled_up = lvbsc.increment_user_points(guild=interaction.guild, user=user, amount=amount, confighandler=confighandler)
+        new_level, _ = lvbsc.points_to_level(new_points, confighandler)
+
+        if has_levelled_up:
+            await self.level_up(new_level, user, interaction.guild, confighandler)
+
+        await interaction.response.send_message(f"added {amount} points to {user.mention}", allowed_mentions=discord.AllowedMentions.none())
+
+    @discord.app_commands.default_permissions(manage_channels=True)
+    @discord.app_commands.command(name="set_levelup_channel", description="set the channel that levelup messages are sent in")
+    async def set_levelup_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        confighandler = self.confighandlers.get(interaction.guild.id, None)
+        if confighandler is None:
+            log(f"~1set_levelup_channel: could not find config handler for guild {interaction.guild.name}")
+            return
+        
+        channel_id = channel.id
+        
+        current_channel = confighandler.get_attribute("alert_channel")
+        if channel_id == current_channel:
+            confighandler.set_attribute("alert_channel", None)
+            await interaction.response.send_message(f"set the current alert channel to DM")
+        else:
+            confighandler.set_attribute("alert_channel", channel_id)
+            verified = confighandler.get_attribute("alert_channel")
+
+            if channel_id == verified:
+                await interaction.response.send_message(f"set the current alert channel to <#{channel_id}>")
+            else:
+                await interaction.response.send_message(f"something went wrong :(")
+
+
+        
+        
+
+
+    @discord.app_commands.default_permissions(manage_roles=True)
     @discord.app_commands.command(name="set_level_role", description="set a role to be given on level up")
     async def set_level_role(self, interaction: discord.Interaction, level: int, role: discord.Role):
         confighandler = self.confighandlers.get(interaction.guild.id, None)
@@ -214,11 +253,12 @@ class Levels(commands.Cog):
         await interaction.response.send_message(f"set role {role.name} for level {level}", ephemeral=True)
         log(f"~2set level role {role.name} for level {level} in guild {interaction.guild.name}")
 
+    @discord.app_commands.default_permissions(manage_roles=True)
     @discord.app_commands.command(name="unset_level_role", description="clear a level of rewards")
     async def unset_level_role(self, interaction: discord.Interaction, level: int):
         confighandler = self.confighandlers.get(interaction.guild.id, None)
         if confighandler is None:
-            log(f"~1set_level_role: could not find config handler for guild {interaction.guild.name}")
+            log(f"~1unset_level_role: could not find config handler for guild {interaction.guild.name}")
             return
         
         if level <= 1:
@@ -254,9 +294,9 @@ class Levels(commands.Cog):
         for lvl, role_id in sorted(roles.items()):
             role = interaction.guild.get_role(role_id)
             if role:
-                lines.append(f"Level {lvl}: {role.mention}")
+                lines.append(f"level {lvl}: {role.mention}")
             else:
-                lines.append(f"Level {lvl}: (role not found, id: {role_id})")
+                lines.append(f"level {lvl}: (role not found, id: {role_id})")
 
         msg = "level role rewards for this server:\n" + "\n".join(lines)
         await interaction.response.send_message(msg, allowed_mentions=allowed_mentions)

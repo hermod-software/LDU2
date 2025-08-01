@@ -9,6 +9,7 @@ from components.shared_instances import bot, POINTS_DATABASE
 from components.function.logging import log
 
 def points_to_level(points: int, confighandler: ConfigHandler) -> tuple[int, int]:
+    "returns level, remaining points to next level"
 
     base = confighandler.get_attribute("base")
     growth_rate = confighandler.get_attribute("growth_rate")
@@ -130,7 +131,7 @@ def increment_user_points(guild:discord.Guild, user:discord.User, amount, config
     # get their current level
 
     user_points_before = POINTS_DATABASE[guild_id][user_id]
-    user_level_before  = points_to_level(user_points_before, confighandler)
+    user_level_before, _  = points_to_level(user_points_before, confighandler)
 
     # increment the user's point value
 
@@ -139,7 +140,7 @@ def increment_user_points(guild:discord.Guild, user:discord.User, amount, config
     # get their new level
 
     user_points_after = POINTS_DATABASE[guild_id][user_id]
-    user_level_after = points_to_level(user_points_after, confighandler)
+    user_level_after, _ = points_to_level(user_points_after, confighandler)
 
     # check if they have levelled up
 
@@ -148,18 +149,3 @@ def increment_user_points(guild:discord.Guild, user:discord.User, amount, config
     log(f"~2added {amount} points to {user_name} in {guild_name}")
 
     return user_points_after, has_levelled_up
-
-
-
-
-
-    
-    
-
-
-# what do we do when we are giving a user points?
-#
-# 1. get their points before incrementing and calc their level
-# 2. incr their points with the old func
-# 3. get their points after incrementing and calc their level again
-# 4. if their level changed, run the level up function to check if they need a new role

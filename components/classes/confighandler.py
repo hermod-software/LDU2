@@ -17,13 +17,20 @@ COG_CONFIGS = {}
 
 CONFIG_REGISTRY = {}
 
+class TupleLoader(yaml.SafeLoader):
+    pass
+
 def tuple_constructor(loader, node):
     return tuple(loader.construct_sequence(node))
 
-yaml.SafeLoader.add_constructor(
+TupleLoader.add_constructor(
     yaml.resolver.BaseResolver.DEFAULT_SEQUENCE_TAG,
     tuple_constructor
 )
+def tuple_representer(dumper, data):
+    return dumper.represent_list(data)
+
+yaml.SafeDumper.add_representer(tuple, tuple_representer)
 
 def register_config(label: str):
     COG_LABELS.append(label)    
@@ -37,7 +44,7 @@ def get_default_config(config_name: str):
     if not path.is_file():
         raise FileNotFoundError(f"config file {config_name} is registered but has no file")
     with path.open("r", encoding="utf-8") as f:
-        config = yaml.safe_load(f) or {}
+        config = yaml.load(f, Loader=TupleLoader) or {}
     return config
 
 class ConfigHandler:
@@ -63,7 +70,7 @@ class ConfigHandler:
         """loads the config for this guild."""
         config = get_guild_attribute(self.guild_id, self.label)
         if config is None:
-            log(f"~1{self.guild_name} does not have attribute {self.label} config, initialising it with default settings...")
+            log(f"~1{self.guild_name} does not have attribute {self.label} config, using default settings...")
             config = default_config
         log(f"~2loaded levels config for {self.guild_name}")
         self.default_config = default_config
@@ -86,6 +93,23 @@ class ConfigHandler:
                 return fallback
         else:
             log(f"~1attribute {attribute} not found in config {self.label} for guild {self.guild_name}, returning fallback")
+            return fallback
+    
+    def get_nested_attribute(self, keys_dict_key, nested_key, fallback=None):
+        """gets a nested attribute from a dict stored in the config. 
+        For example: config[keys["levelup_message"]] where keys is a dict in the config."""
+        if self.config is None:
+            self.load_config()
+        
+        keys_dict = self.get_attribute(keys_dict_key, fallback={})
+        if not isinstance(keys_dict, dict):
+            log(f"~1{keys_dict_key} is not a dictionary in config {self.label} for guild {self.guild_name}")
+            return fallback
+            
+        if nested_key in keys_dict:
+            return keys_dict[nested_key]
+        else:
+            log(f"~1nested key {nested_key} not found in {keys_dict_key} for config {self.label} for guild {self.guild_name}, returning fallback")
             return fallback
         
     def set_attribute(self, attribute, value):
