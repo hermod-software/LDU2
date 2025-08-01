@@ -225,6 +225,7 @@ class Levels(commands.Cog):
         else: # was true, now false
             await interaction.response.send_message(f"i will send you levelup messages!")
 
+    @discord.app_commands.default_permissions(manage_roles=True)
     @discord.app_commands.command(name="server_shut_up", description="toggle levelup/roleup pings/dms for the entire server")
     async def server_shut_up(self, interaction: discord.Interaction):
         confighandler = self.confighandlers.get(interaction.guild.id, None)
