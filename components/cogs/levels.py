@@ -147,7 +147,7 @@ class Levels(commands.Cog):
             alert_message = roleup_message if role_up else levelup_message
             alert_message = f"{user.mention} {alert_message}"
 
-        alert_message = f"{alert_message}\n-# you can toggle these messages by doing /shut_up"
+        alert_message = f"{alert_message}\n-# you can toggle these messages by doing /shut_up in {guild}"
 
         # try our best to give the role if applicable
 
@@ -206,6 +206,9 @@ class Levels(commands.Cog):
     @discord.app_commands.command(name="shut_up", description="toggle levelup/roleup pings/dms")
     async def shut_up(self, interaction: discord.Interaction):
         guild_id = interaction.guild_id
+        if guild_id is None:
+            await interaction.response.send_message(f"this command only works in the server you leveled up in")
+            return
         user_id = interaction.user.id
 
         current_toggle = get_guild_member_attribute(guild_id, user_id, "shutup")
@@ -214,9 +217,9 @@ class Levels(commands.Cog):
         set_guild_member_attribute(guild_id, user_id, key="shutup", value=(not current_toggle))
 
         if not current_toggle: # was false, now true
-            await interaction.response.send_message(f"i will send you levelup messages!")
+            await interaction.response.send_message(f"i won't send you levelup messages anymore ☹️")
         else: # was true, now false
-            await interaction.response.send_message(f"i won't send you levelup messages anymore :frown2:")
+            await interaction.response.send_message(f"i will send you levelup messages!")
         
 
     @discord.app_commands.default_permissions(manage_channels=True)
