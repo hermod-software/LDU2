@@ -321,12 +321,12 @@ class Levels(commands.Cog):
             await interaction.response.send_message(f"that level doesn't have a role reward, so it couldn't be deleted.", ephemeral=True)
             log(f"~2tried to clear level role for level {level} in guild {interaction.guild.name}, but there was no role to clear.")
         
-    @discord.app_commands.command(name="get_role_list", description="get the list of role rewards for this server")
-    async def get_role_list(self, interaction: discord.Interaction):
+    @discord.app_commands.command(name="roles", description="get the list of role rewards for this server")
+    async def roles(self, interaction: discord.Interaction):
         allowed_mentions = discord.AllowedMentions.none()
         confighandler = self.confighandlers.get(interaction.guild.id, None)
         if confighandler is None:
-            log(f"~1get_role_list: could not find config handler for guild {interaction.guild.name}")
+            log(f"~1roles: could not find config handler for guild {interaction.guild.name}")
             await interaction.response.send_message("there was an error with this guild's confighandler", ephemeral=True, allowed_mentions=allowed_mentions)
             return
 
