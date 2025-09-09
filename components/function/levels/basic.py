@@ -73,10 +73,11 @@ def get_user_progress(level, total, points_to_next_level, confighandler):
 def format_leaderboard(guild_id: int, confighandler: ConfigHandler) -> list[tuple[str, str, int, int, int, int]]:
     """returns a list of tuples: \n\nDISPLAY NAME, USER NAME, UUID, LEVEL, TOTAL POINTS, POINTS TO NEXT LEVEL"""
     leaderboard = get_guild_leaderboard(guild_id)
+    guild = bot.get_guild(guild_id)
 
     formatted_leaderboard = []
     for user_id, points in leaderboard:
-        user = bot.get_user(user_id)
+        user = guild.get_member(user_id)
 
         if not user:
             continue # skip if no such user exists
