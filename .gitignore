@@ -5,3 +5,4 @@ token.txt
 bfg.jar
 ldu2settings.toml
 /.venv
+/logs

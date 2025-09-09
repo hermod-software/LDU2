@@ -1,4 +1,5 @@
 import datetime
+from pathlib import Path
 
 from components.shared_instances import logged_amount
 
@@ -18,9 +19,12 @@ COLOUR_ROTATION = ["7", "6"] # console will cycle through these colours when pri
 def log(message):
     global logged_amount
     timestamp = datetime.datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+    file_timestamp = Path("logs") / datetime.datetime.now().strftime("%d_%m_%Y.txt")
+    file_timestamp.parent.mkdir(parents=True, exist_ok=True)
     reset_colour = COLOUR_ROTATION[logged_amount % len(COLOUR_ROTATION)]
 
     new_message = []
+    new_message_plain = []
 
     colour_assign_mode = False
     for char in message:
@@ -36,7 +40,14 @@ def log(message):
             continue
         else:
             new_message.append(char)
+            new_message_plain.append(char)
     new_message = "".join(new_message)
+    new_message_plain = "".join(new_message_plain)
+
+
+    file_timestamp.touch()
+    with file_timestamp.open("a") as f:
+        f.write(f"[{timestamp}] {new_message_plain}\n")
 
     print(f"{COLOURS[reset_colour]}[{timestamp}] {new_message}{COLOURS[reset_colour]}")
     logged_amount += 1

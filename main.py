@@ -8,6 +8,9 @@ import sys
 from components.shared_instances import bot, tree, version
 from components.function.logging import log
 
+log(f"============================================")
+log(f"================startup=====================")
+log(f"============================================")
 log(f"~1C-LDU ~2version {version} ~7starting up...")
 log("~1config, ~3levels ~7& ~5discord utility ~7bot")
 log("~1(c) 2025 lauren k ~7/ ~4hermod software")
