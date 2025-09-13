@@ -479,7 +479,7 @@ class Levels(commands.Cog):
             guild_id=interaction.guild.id,
             guild_name=interaction.guild.name,
             leaderboard=leaderboard,
-            max_rows=8,
+            max_rows=6,
             page_requested=page,
             theme=theme
         )
