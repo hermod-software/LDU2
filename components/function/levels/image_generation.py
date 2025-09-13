@@ -216,7 +216,7 @@ def generate_user_unit(entry, lb_index: int, theme: tuple, rank_mode=False):
 def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list, max_rows: int, page_requested: int, theme: str = "red") -> str:
     "returns the path of the leaderboard image"
 
-    debug = True
+    debug = False
 
     if debug:
         for i in range(30):
