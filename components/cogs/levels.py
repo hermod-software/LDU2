@@ -3,6 +3,7 @@ from discord.ext import commands
 import asyncio
 import random
 import time
+import re
 
 from components.function.logging import log
 from components.function.savedata import set_guild_attribute, get_guild_attribute, get_guild_member_attribute, set_guild_member_attribute
@@ -25,6 +26,7 @@ async def save_points_regular(interval=15):
 
 
 class Levels(commands.Cog):
+
 
     def __init__(self, bot: commands.Bot):
         global POINTS_DATABASE
@@ -267,9 +269,75 @@ class Levels(commands.Cog):
             else:
                 await interaction.response.send_message(f"something went wrong :(")
 
+    @discord.app_commands.default_permissions(manage_channels=True)
+    @discord.app_commands.command(name="set_server_theme", description="set the base theme that the leaderboard uses")
+    @discord.app_commands.describe(colour="valid hex code ('reset' to reset)")
+    async def set_leaderboard_theme(self, interaction: discord.Interaction, colour: str):
 
+        guild_id = interaction.guild.id if interaction.guild else None
+        if guild_id is None:
+            await interaction.response.send_message("this command can only be used in a server.", ephemeral=True)
+            return
+
+        confighandler = self.confighandlers.get(interaction.guild.id, None)
+        if confighandler is None:
+            log(f"~1set_leaderboard_theme: could not find config handler for guild {interaction.guild.name}")
+            return
         
+
+
+        if not colour.startswith("#") and not colour.lower() == "reset":
+            colour = f"#{colour}"
+        is_valid_hex = bool(re.fullmatch(r"#([0-9a-fA-F]{6})", colour))
+        is_reset = colour.lower() == "reset"
+
+        if not is_valid_hex and not is_reset:
+            log(f"~3server {interaction.guild.name} tried to change theme to {colour} (invalid)")
+            await interaction.response.send_message(f"not a valid input! need a valid hex colour code or 'reset' to go back to random choice.", ephemeral=True)
+            return
+
+        if is_reset:
+            confighandler.set_attribute("colour", None)
+            log(f"~2server {interaction.guild.name} theme cleared")
+            await interaction.response.send_message("the server theme will now be picked randomly")
+            return
+        else:
+            rgb = lvbsc.hex_to_rgb(colour)
+            confighandler.set_attribute("colour", rgb)
+            log(f"~2server {interaction.guild.name} theme set to {colour} f{rgb}")
+            await interaction.response.send_message(f"the server theme base colour has been set to {colour}")
+            return
         
+    @discord.app_commands.command(name="set_user_theme", description="set your personal theme color for generated images")
+    @discord.app_commands.describe(colour="valid hex code ('reset' to reset)")
+    async def set_user_theme(self, interaction: discord.Interaction, colour: str):
+        user_id = interaction.user.id
+        guild_id = interaction.guild.id if interaction.guild else None
+        if guild_id is None:
+            await interaction.response.send_message("this command can only be used in a server.", ephemeral=True)
+            return
+
+        if not colour.startswith("#"):
+            colour = f"#{colour}"
+        is_valid_hex = bool(re.fullmatch(r"#([0-9a-fA-F]{6})", colour))
+        is_reset = colour.lower() == "reset"
+
+        if not is_valid_hex and not is_reset:
+            log(f"~3user {interaction.user.name} tried to change theme to {colour} (invalid)")
+            await interaction.response.send_message(f"not a valid input! Need a valid hex colour code or 'reset' to go back to server/default theme.", ephemeral=True)
+            return
+
+        if is_reset:
+            set_guild_member_attribute(guild_id, user_id, key="colour", value=None)
+            log(f"~2user {interaction.user.name} theme cleared")
+            await interaction.response.send_message("your personal theme has been reset to the server/default theme.", ephemeral=True)
+            return
+        else:
+            rgb = lvbsc.hex_to_rgb(colour)
+            set_guild_member_attribute(guild_id, user_id, key="colour", value=rgb)
+            log(f"~2user {interaction.user.name} theme set to {colour} f{rgb}")
+            await interaction.response.send_message(f"your personal theme color has been set to {colour}", ephemeral=True)
+            return
 
 
     @discord.app_commands.default_permissions(manage_roles=True)
@@ -357,6 +425,8 @@ class Levels(commands.Cog):
             await interaction.response.send_message("there was an error with this guild's confighandler", ephemeral=True)
             return
 
+        theme = confighandler.get_attribute("colour", fallback=(40, 40, 40))
+
         leaderboard = lvbsc.format_leaderboard(
             guild_id=interaction.guild.id,
             confighandler=confighandler
@@ -372,9 +442,6 @@ class Levels(commands.Cog):
         if not user_entry:
             await interaction.response.send_message("you are not on the leaderboard yet!", ephemeral=True)
             return
-
-        colours = ["red", "blue", "green", "pink", "orange", "black", "grey"]
-        theme = random.choice(colours)
 
         image_path = lvimg.generate_rank_card_image(
             guild_id=interaction.guild.id,
@@ -401,8 +468,7 @@ class Levels(commands.Cog):
         if confighandler is None:
             log(f"~1leaderboard: could not find config handler for guild {interaction.guild.name}")
             return
-        colours = ["red", "blue", "green", "pink", "orange", "black", "grey"]
-        theme = random.choice(colours)
+        theme = confighandler.get_attribute("colour", fallback=(40, 40, 40))
 
         leaderboard = lvbsc.format_leaderboard(
             guild_id=interaction.guild.id,

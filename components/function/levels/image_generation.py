@@ -1,6 +1,7 @@
 from PIL import Image, ImageDraw, ImageFont
 import math
 import pathlib
+import random
 from datetime import datetime
 
 import components.function.levels.image_constants as C
@@ -80,7 +81,7 @@ def generate_progress_circle(entry, lb_index, theme):
         text_colour = C.TOP3[lb_index]  
         # get the "reward colour" (gold, silver, bronze) for top 3 users
     else:
-        text_colour = C.PALETTES[theme]["text"] 
+        text_colour = theme["text"] 
         # get the text colour for requested theme
 
     chars = len(str(entry[3])) # level (4th element)
@@ -103,7 +104,7 @@ def generate_progress_circle(entry, lb_index, theme):
             C.C_OFFSET + C.C_WIDTH, 
             C.C_OFFSET + C.C_HEIGHT
         ),
-        fill=C.PALETTES[theme]["circle"]
+        fill=theme["circle"]
     )
     draw.arc(
         (
@@ -132,14 +133,19 @@ def generate_progress_circle(entry, lb_index, theme):
 
     return surface, surface.split()[3] # return mask
 
-def generate_user_unit(entry, lb_index: int, theme: str, rank_mode=False):
+def generate_user_unit(entry, lb_index: int, theme: tuple, rank_mode=False):
     # entry format: 
     # 0 DISPLAY NAME,       1 USER NAME, 
     # 2 UUID,               3 LEVEL, 
     # 4 TOTAL POINTS,       5 POINTS TO NEXT LEVEL, 
     # 6 PROGRESS,           7 USER THEME
     log(f"generating user unit for {entry[1]}")
-    theme_palette = C.PALETTES[theme]
+
+    if entry[7] is None:
+        theme_palette = theme  # already a palette dict
+    else:
+        theme_palette = b.make_palette(entry[7])
+
 
     width = C.LB_USER_UNIT_WIDTH
     width = width + C.RANK_CARD_UNIT_WIDTH_EXTENDER if rank_mode == True else width
@@ -152,8 +158,11 @@ def generate_user_unit(entry, lb_index: int, theme: str, rank_mode=False):
     level = entry[3]
     total_points = entry[4]
     points_to_next_level = entry[5]
+    user_theme = entry[7]
 
-    level_circle, level_circle_mask = generate_progress_circle(entry, lb_index, theme)
+
+    level_circle, level_circle_mask = generate_progress_circle(entry, lb_index, theme_palette)
+
 
     rounded_rect(
         draw=draw,
@@ -207,7 +216,7 @@ def generate_user_unit(entry, lb_index: int, theme: str, rank_mode=False):
 def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list, max_rows: int, page_requested: int, theme: str = "red") -> str:
     "returns the path of the leaderboard image"
 
-    debug = False
+    debug = True
 
     if debug:
         for i in range(30):
@@ -219,7 +228,7 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
                 (i + 1) * 100,  # TOTAL POINTS
                 (i + 1) * 50,  # POINTS TO NEXT LEVEL
                 (i + 1) / 30,  # PROGRESS (0.0 to 1.0)
-                "red" if i % 2 == 0 else "blue"  # USER THEME
+                None,
             ]
             leaderboard.append(dummy_entry)
             
@@ -233,11 +242,12 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
     # page_requested: int, 
     # theme: str = "red"
 
-    max_rows = min(max_rows, 10) # don't go insane with the rows
+    max_rows = min(max_rows, 15) # don't go insane with the rows
 
-    if theme not in C.PALETTES or "text" not in C.PALETTES[theme]:
-        theme = "red"
-    this_theme = C.PALETTES[theme].copy()
+    if theme is None: # if no server theme selected then pick random from presets
+        theme = random.choice(list(C.PALETTES.values()))
+
+    theme_palette = b.make_palette(theme)
 
     lb_page_data, lb_indexes, total_pages = get_page(leaderboard, max_rows, page_requested)
 
@@ -249,7 +259,7 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
             C.LB_WIDTH,
             image_height
         ),
-        color=this_theme["main"]
+        color=theme_palette["main"]
     )
     draw = ImageDraw.Draw(surface)
 
@@ -269,7 +279,7 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
         ),
         text=title_text,
         font=title_font,
-        fill=this_theme["text"]
+        fill=theme_palette["text"]
     )
 
     # user unit loop
@@ -277,11 +287,11 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
     for i, entry in enumerate(lb_page_data):
         ypos = C.LB_TITLEBAR_HEIGHT + ((C.LB_USER_UNIT_HEIGHT + C.COLUMN_PADDING[0]//2) * (i % max_rows))
         xpos = C.X_LEFT_COLUMN if i < max_rows else C.X_RIGHT_COLUMN
-        
+
         user_unit, mask = generate_user_unit(
             entry=entry,
             lb_index=lb_indexes[i],
-            theme=theme
+            theme=theme_palette
         )
         surface.paste(user_unit, (xpos, ypos), mask)
 
@@ -318,20 +328,30 @@ def find_user_in_leaderboard(leaderboard, user_id):
 def generate_rank_card_image(guild_id: int, guild_name: str, leaderboard: list, user_requested: int, theme: str = "red") -> str:
     "returns the path of the rank card image"
     
-    if theme not in C.PALETTES or "text" not in C.PALETTES[theme]:
-        theme = "red"
 
-    surface = Image.new(
-        size=(C.RANK_CARD_WIDTH, C.RANK_CARD_HEIGHT),
-        mode="RGB",
-        color=C.PALETTES[theme]["main"]
-    )
-    draw = ImageDraw.Draw(surface)
+    # accept both string and tuple themes
+    if isinstance(theme, str):
+        if theme not in C.PALETTES:
+            theme = "red"
+        theme_palette = b.make_palette(C.PALETTES[theme])
+    elif isinstance(theme, tuple) and len(theme) == 3:
+        theme_palette = b.make_palette(theme)
+    else:
+        theme_palette = b.make_palette((220, 50, 70))  # fallback to red
+
+
 
     entry, lb_index = find_user_in_leaderboard(leaderboard, user_requested)
     if entry is None:
         log(f"~1user {user_requested} not found in leaderboard, can't generate rank card")
         return None
+
+    surface = Image.new(
+        size=(C.RANK_CARD_WIDTH, C.RANK_CARD_HEIGHT),
+        mode="RGB",
+        color=theme_palette["main"]
+    )
+    draw = ImageDraw.Draw(surface)
 
     title_text = entry[1] # username
     title_font = C.TITLE
@@ -349,10 +369,10 @@ def generate_rank_card_image(guild_id: int, guild_name: str, leaderboard: list, 
         ),
         text=title_text,
         font=title_font,
-        fill=C.PALETTES[theme]["text"]
+        fill=theme_palette["text"]
     )
 
-    user_unit,mask = generate_user_unit(entry, lb_index, theme, rank_mode=True)
+    user_unit,mask = generate_user_unit(entry, lb_index, theme_palette, rank_mode=True)
 
     unit_pos = (
         C.RANK_CARD_LEFT_PAD,

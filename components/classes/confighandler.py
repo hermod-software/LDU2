@@ -72,6 +72,10 @@ class ConfigHandler:
         if config is None:
             log(f"~1{self.guild_name} does not have attribute {self.label} config, using default settings...")
             config = default_config
+        if isinstance(config, dict) and "colour" in config:
+            colour = config["colour"]
+            if isinstance(colour, list) and len(colour) == 3:
+                config["colour"] = tuple(colour)
         log(f"~2loaded levels config for {self.guild_name}")
         self.default_config = default_config
         self.config = config

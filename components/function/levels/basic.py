@@ -4,7 +4,7 @@ import operator
 import random
 
 from components.classes.confighandler import ConfigHandler
-from components.function.savedata import get_guild_attribute
+from components.function.savedata import get_guild_attribute, get_guild_member_attribute
 from components.shared_instances import bot, POINTS_DATABASE
 from components.function.logging import log
 
@@ -68,7 +68,11 @@ def get_user_progress(level, total, points_to_next_level, confighandler):
 
     return progress
 
-# DISPLAY NAME, USER NAME, UUID, LEVEL, TOTAL POINTS, POINTS TO NEXT LEVEL, PERCENT PROGRESS
+    # entry format: 
+    # 0 DISPLAY NAME,       1 USER NAME, 
+    # 2 UUID,               3 LEVEL, 
+    # 4 TOTAL POINTS,       5 POINTS TO NEXT LEVEL, 
+    # 6 PROGRESS,           7 USER THEME
 
 def format_leaderboard(guild_id: int, confighandler: ConfigHandler) -> list[tuple[str, str, int, int, int, int]]:
     """returns a list of tuples: \n\nDISPLAY NAME, USER NAME, UUID, LEVEL, TOTAL POINTS, POINTS TO NEXT LEVEL"""
@@ -86,11 +90,12 @@ def format_leaderboard(guild_id: int, confighandler: ConfigHandler) -> list[tupl
         username = user.name
         total_points = int(points)
         level, points_to_next = points_to_level(points, confighandler)
-        progress = get_user_progress(level, total_points, points_to_next, confighandler)
 
-        entry = (displayname, username, user_id, level, total_points, points_to_next, progress)
+    progress = get_user_progress(level, total_points, points_to_next, confighandler)
+    user_theme = get_guild_member_attribute(guild_id, user_id, "colour")
 
-        formatted_leaderboard.append(entry)
+    entry = (displayname, username, user_id, level, total_points, points_to_next, progress, user_theme)
+    formatted_leaderboard.append(entry)
 
     return formatted_leaderboard
 
@@ -153,3 +158,38 @@ def increment_user_points(guild:discord.Guild, user:discord.User, amount, config
     log(f"~2added {amount} points to {user_name} in {guild_name}")
 
     return user_points_after, has_levelled_up
+
+def hex_to_rgb(value: str) -> tuple[int, int, int]:
+    value = value.lstrip('#')
+    return tuple(int(value[i:i+2], 16) for i in (0, 2, 4))
+
+def make_palette(main):
+    r, g, b = main
+
+    # darker shade
+    dark = tuple(int(c * 0.7) for c in (r, g, b))
+
+    # soft grey blend
+    grey = tuple(int((c * 0.3) + (220 * 0.7)) for c in (r, g, b))
+
+    # brightness check for text colour
+    brightness = 0.299*r + 0.587*g + 0.114*b
+    if brightness > 200:
+        # if background is very bright, shift text slightly toward grey so it's readable
+        text = (220, 220, 220)
+    else:
+        # otherwise keep it close to white
+        text = (245, 245, 245)
+
+    # circle near-black, tinted by the main colour
+    circle = tuple(max(0, int(c * 0.15)) for c in (r, g, b))
+
+    return {
+        "main": main,
+        "dark": dark,
+        "grey": grey,
+        "text": text,
+        "circle": circle,
+    }
+
+
