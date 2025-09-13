@@ -91,11 +91,11 @@ def format_leaderboard(guild_id: int, confighandler: ConfigHandler) -> list[tupl
         total_points = int(points)
         level, points_to_next = points_to_level(points, confighandler)
 
-    progress = get_user_progress(level, total_points, points_to_next, confighandler)
-    user_theme = get_guild_member_attribute(guild_id, user_id, "colour")
+        progress = get_user_progress(level, total_points, points_to_next, confighandler)
+        user_theme = get_guild_member_attribute(guild_id, user_id, "colour")
 
-    entry = (displayname, username, user_id, level, total_points, points_to_next, progress, user_theme)
-    formatted_leaderboard.append(entry)
+        entry = (displayname, username, user_id, level, total_points, points_to_next, progress, user_theme)
+        formatted_leaderboard.append(entry)
 
     return formatted_leaderboard
 
