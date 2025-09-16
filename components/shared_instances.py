@@ -1,7 +1,9 @@
 # this file should not import any other files in the bot to avoid circular imports
 # it is for storing "global" objects that are used across the whole bot
 
-version = "v1.2.0"
+version = "v1.2.1"
+
+DEVTAG = "laukins"
 
 import discord
 from discord.ext import commands

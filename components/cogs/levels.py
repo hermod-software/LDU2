@@ -8,7 +8,7 @@ import re
 from components.function.logging import log
 from components.function.savedata import set_guild_attribute, get_guild_attribute, get_guild_member_attribute, set_guild_member_attribute
 from components.classes.confighandler import ConfigHandler, register_config
-from components.shared_instances import POINTS_DATABASE
+from components.shared_instances import POINTS_DATABASE, DEVTAG
 import components.function.levels.basic as lvbsc
 import components.function.levels.image_generation as lvimg
 
@@ -161,6 +161,12 @@ class Levels(commands.Cog):
                     log(f"~2added role {role.name} to {user.name} in {guild_name}")
                 except discord.Forbidden:
                     log(f"~1could not add role {role.name} to {user.name} in {guild_name}, bot does not have permission")
+                    await guild.owner.send(
+                        f"hello! i tried to give a user their level-up role in {guild.name}, "
+                        f"but i couldn’t. please check that i have the 'manage roles' permission "
+                        f"and that my highest role is above the level-up role in the role list. "
+                        f"if the issue persists, please PM @{DEVTAG}."
+                    ) 
                 except Exception as e:
                     log(f"~1error adding role {role.name} to {user.name} in {guild_name}: {e}")
 
