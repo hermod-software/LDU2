@@ -34,27 +34,18 @@ TOP3 = {
 
 # LOADING FONTS
 
-try:  # be mindful of the file type if you are changing the font (ttf, otf, etc). this script is designed for monospace fonts!
+# be mindful of the file type if you are changing the font (ttf, otf, etc). 
+# this script is designed for monospace fonts, and is not designed to
+# support variable width typefaces!
+FONT_TYPE = ".otf"
 
-    BIGNUMBER = ImageFont.truetype(f"{TYPES_PATH}typeface.otf", 100)
-    MEDNUMBER = ImageFont.truetype(f"{TYPES_PATH}typeface.otf", 90)
-    TITLE = ImageFont.truetype(f"{TYPES_PATH}typeface.otf", 105)
-    BODY = ImageFont.truetype(f"{TYPES_PATH}typeface.otf", 75)
-    BODY_LIGHT = ImageFont.truetype(f"{TYPES_PATH}light.otf", 45)
-    TINY = ImageFont.truetype(f"{TYPES_PATH}typeface.otf", 33)
-    TINY_LIGHT = ImageFont.truetype(f"{TYPES_PATH}light.otf", 33)
-    log("~2all fonts loaded successfully")
-except IOError:
-    log("~1!! graphics.py could not find typeface.otf or light.otf, using default font for all !!")
-    BIGNUMBER = ImageFont.load_default()
-    MEDNUMBER = ImageFont.load_default()
-    TITLE = ImageFont.load_default()
-    BODY = ImageFont.load_default()
-    BODY_LIGHT = ImageFont.load_default()
-    TINY = ImageFont.load_default()
-    TINY_LIGHT = ImageFont.load_default()
-    # pil's load_default does not respect sizes so i guess it will just look weird
-    # but it's better than crashing
+BIGNUMBER = ImageFont.truetype(f"{TYPES_PATH}typeface{FONT_TYPE}", 100)
+MEDNUMBER = ImageFont.truetype(f"{TYPES_PATH}typeface{FONT_TYPE}", 90)
+TITLE = ImageFont.truetype(f"{TYPES_PATH}typeface{FONT_TYPE}", 105)
+BODY = ImageFont.truetype(f"{TYPES_PATH}typeface{FONT_TYPE}", 75)
+BODY_LIGHT = ImageFont.truetype(f"{TYPES_PATH}light{FONT_TYPE}", 45)
+TINY = ImageFont.truetype(f"{TYPES_PATH}typeface{FONT_TYPE}", 33)
+TINY_LIGHT = ImageFont.truetype(f"{TYPES_PATH}light{FONT_TYPE}", 33)
 
 # LEVEL CIRCLE CONSTANTS
 

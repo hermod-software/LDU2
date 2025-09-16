@@ -39,7 +39,8 @@ async def on_ready():
     log (f"~1l~2o~3r~4i~5t~6s~1i ~2b~3o~4t~5 ~r(colourtest)")
     log(f"~2successfully logged in as ~1{bot.user}")
     guilds_text = "guilds" if len(bot.guilds) != 1 else "guild"
-    log(f"~2connected to {len(bot.guilds)} {guilds_text}: ~1{', '.join([guild.name for guild in bot.guilds])}")
+    guilds_list = ', '.join([f"{guild.name} ({guild.owner.name})" for guild in bot.guilds])
+    log(f"~2connected to {len(bot.guilds)} {guilds_text}: ~1{guilds_list}")
     await load_all_cogs()
     activity = discord.Activity(name=f"{version}", type=discord.ActivityType.playing)
     await bot.change_presence(activity=activity)

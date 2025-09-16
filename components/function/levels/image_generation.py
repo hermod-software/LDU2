@@ -42,7 +42,7 @@ def get_max_chars(font, width):
 
 
 def get_page(leaderboard, max_rows=5, page_requested=1) -> tuple[list, bool]:
-    """bool is whether or not we don't have enough entries to full up a page"""
+    """bool is whether or not we have too few entries to fill up a single page"""
 
     # return a "page" from the leaderboard
     # page 1 - index 0-9
@@ -267,7 +267,7 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
     title_font = C.TITLE
     title_max_chars = get_max_chars(title_font, C.LB_TITLE_TEXT_WIDTH)
 
-    truncate(
+    title_text = truncate(
         text=title_text,
         max_chars=title_max_chars
     )
@@ -357,7 +357,7 @@ def generate_rank_card_image(guild_id: int, guild_name: str, leaderboard: list, 
     title_font = C.TITLE
     title_max_chars = get_max_chars(title_font, C.RANK_CARD_TITLE_WIDTH)
 
-    truncate(
+    title_text = truncate(
         text=title_text,
         max_chars=title_max_chars
     )
