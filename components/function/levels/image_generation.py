@@ -143,10 +143,8 @@ def generate_user_unit(entry, lb_index: int, theme: tuple, rank_mode=False):
 
     if entry[7] is None:
         theme_palette = theme  # already a palette dict
-        is_user_theme = False
     else:
         theme_palette = b.make_palette(entry[7])
-        is_user_theme = True
 
 
     width = C.LB_USER_UNIT_WIDTH
@@ -170,7 +168,7 @@ def generate_user_unit(entry, lb_index: int, theme: tuple, rank_mode=False):
         draw=draw,
         box=surf_bounds.bounds,
         radius=32,
-        fill=theme_palette["dark"] if not is_user_theme else theme_palette["main"]
+        fill=theme_palette["dark"]
     )
 
     circle_topleft = (C.LB_C_PADDING, C.LB_C_PADDING)
