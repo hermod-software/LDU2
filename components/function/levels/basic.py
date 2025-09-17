@@ -184,12 +184,16 @@ def make_palette(main):
     # circle near-black, tinted by the main colour
     circle = tuple(max(0, int(c * 0.15)) for c in (r, g, b))
 
+    def to_int_tuple(value):
+        # ensure value is a tuple of ints
+        return tuple(int(x) for x in value)
+
     return {
-        "main": main,
-        "dark": dark,
-        "grey": grey,
-        "text": text,
-        "circle": circle,
+        "main": to_int_tuple(main),
+        "dark": to_int_tuple(dark),
+        "grey": to_int_tuple(grey),
+        "text": to_int_tuple(text),
+        "circle": to_int_tuple(circle),
     }
 
 

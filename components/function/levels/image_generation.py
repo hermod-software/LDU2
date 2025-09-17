@@ -221,13 +221,13 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
     if debug:
         for i in range(30):
             dummy_entry = [
-                f"user{i+1}",  # DISPLAY NAME
-                f"user{i+1}",  # USER NAME
-                f"uuid-{i+1:03}",  # UUID
-                i + 1,  # LEVEL
-                (i + 1) * 100,  # TOTAL POINTS
-                (i + 1) * 50,  # POINTS TO NEXT LEVEL
-                (i + 1) / 30,  # PROGRESS (0.0 to 1.0)
+                f"user{i+1}",       # DISPLAY NAME
+                f"user{i+1}",       # USER NAME
+                f"uuid-{i+1:03}",   # UUID
+                i + 1,              # LEVEL
+                (i + 1) * 100,      # TOTAL POINTS
+                (i + 1) * 50,       # POINTS TO NEXT LEVEL
+                (i + 1) / 30,       # PROGRESS (0.0 to 1.0)
                 None,
             ]
             leaderboard.append(dummy_entry)
@@ -345,6 +345,9 @@ def generate_rank_card_image(guild_id: int, guild_name: str, leaderboard: list, 
     if entry is None:
         log(f"~1user {user_requested} not found in leaderboard, can't generate rank card")
         return None
+    
+    if not entry[7] is None:
+        theme_palette = b.make_palette(entry[7])
 
     surface = Image.new(
         size=(C.RANK_CARD_WIDTH, C.RANK_CARD_HEIGHT),
@@ -387,8 +390,8 @@ def generate_rank_card_image(guild_id: int, guild_name: str, leaderboard: list, 
 
     surface = surface.resize(
         (
-            C.RANK_CARD_WIDTH // 2,
-            C.RANK_CARD_HEIGHT // 2
+            C.RANK_CARD_WIDTH // 3,
+            C.RANK_CARD_HEIGHT // 3
         ),
         resample=Image.LANCZOS
     )
