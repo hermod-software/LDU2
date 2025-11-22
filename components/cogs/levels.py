@@ -88,6 +88,11 @@ class Levels(commands.Cog):
             log(f"~1could not find config handler for guild {message.guild.name}")
             return
 
+        disabled_channels = confighandler.get_attribute("disabled_channels", fallback=[])
+        if message.channel.id in disabled_channels:
+            log(f"~1ignoring message by {message.author.name} in disabled channel {message.channel.name} of guild {message.guild.name}")
+            return
+
         # check if the user has sent a message within the cooldown
 
         timestamp = time.time()
@@ -419,6 +424,28 @@ class Levels(commands.Cog):
 
         msg = "level role rewards for this server:\n" + "\n".join(lines)
         await interaction.response.send_message(msg, allowed_mentions=allowed_mentions)
+
+    @discord.app_commands.default_permissions(manage_channels=True)
+    @discord.app_commands.command(name="toggle_xp", description="toggle whether users can gain xp in a specific channel")
+    async def toggle_xp_channel(self, interaction: discord.Interaction, channel: discord.TextChannel):
+        confighandler = self.confighandlers.get(interaction.guild.id, None)
+        if confighandler is None:
+            log(f"~1toggle_xp: could not find config handler for guild {interaction.guild.name}")
+            await interaction.response.send_message("there was an error with this guild's confighandler", ephemeral=True)
+            return
+
+        disabled_channels = confighandler.get_attribute("disabled_channels", fallback=[])
+        
+        if channel.id in disabled_channels:
+            disabled_channels.remove(channel.id)
+            confighandler.set_attribute("disabled_channels", disabled_channels)
+            await interaction.response.send_message(f"xp gain has been enabled in {channel.mention}")
+            log(f"~2enabled xp gain in {channel.name} for guild {interaction.guild.name}")
+        else:
+            disabled_channels.append(channel.id)
+            confighandler.set_attribute("disabled_channels", disabled_channels)
+            await interaction.response.send_message(f"xp gain has been disabled in {channel.mention}")
+            log(f"~2disabled xp gain in {channel.name} for guild {interaction.guild.name}")
         
 
 

@@ -96,8 +96,9 @@ class ConfigHandler:
                 log(f"~1error getting attribute {attribute} from config {self.label} for guild {self.guild_name}: {e}")
                 return fallback
         else:
-            log(f"~1attribute {attribute} not found in config {self.label} for guild {self.guild_name}, returning fallback")
-            return fallback
+            if not fallback is None: # log only if fallback is provided
+                log(f"~1attribute {attribute} not found in config {self.label} for guild {self.guild_name}, returning fallback")
+                return fallback
     
     def get_nested_attribute(self, keys_dict_key, nested_key, fallback=None):
         """gets a nested attribute from a dict stored in the config. 

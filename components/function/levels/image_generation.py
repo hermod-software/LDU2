@@ -89,7 +89,7 @@ def generate_progress_circle(entry, lb_index, theme):
         font = C.BIGNUMBER
     elif chars == 2:
         font = C.MEDNUMBER
-    elif chars == 3:
+    elif chars > 2:
         font = C.TITLE
     # the font size should respect the width of the circle
     # hope and pray to god that nobody ever gets a 4 digit level
