@@ -4,10 +4,12 @@ import pathlib
 import random
 from datetime import datetime
 
+import components.shared_instances as shared
 import components.function.levels.image_constants as C
 import components.function.levels.basic as b
 from components.classes.bounds import Bounds
 from components.function.logging import log
+
 
 # dear PIL...
 # i HATE YOU
@@ -281,6 +283,57 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
         font=title_font,
         fill=theme_palette["text"]
     )
+
+    meta_text_top = f"{datetime.now().strftime('%d %m %y')}" 
+    meta_text_middle = f"page {page_requested} / {total_pages}"
+    meta_text_bottom = f"version {shared.version}"
+    meta_text_font = C.TINY_LIGHT
+    meta_text_max_chars = get_max_chars(meta_text_font, C.LB_TITLE_META_WIDTH)
+    meta_text_top = truncate(
+        text=meta_text_top,
+        max_chars=meta_text_max_chars
+    )
+    meta_text_bottom = truncate(
+        text=meta_text_bottom,
+        max_chars=meta_text_max_chars
+    )
+    
+    draw.text(
+        xy = (
+            C.LB_WIDTH - C.LB_TITLE_PADDING_L,
+            C.LB_TITLE_PADDING_U
+        ),
+        align = "right",
+        text = f"{meta_text_top}",
+        font = meta_text_font,
+        fill = theme_palette["text"],
+        anchor="rt"
+    )
+
+    draw.text(
+        xy = (
+            C.LB_WIDTH - C.LB_TITLE_PADDING_L,
+            C.LB_TITLE_PADDING_U + meta_text_font.getsize(meta_text_top)[1] + 5
+        ),
+        align = "right",
+        text = f"{meta_text_middle}",
+        font = meta_text_font,
+        fill = theme_palette["text"],
+        anchor="rt"
+    )  
+
+    # draw.text(
+    #     xy = (
+    #         C.LB_WIDTH - C.LB_TITLE_PADDING_L,
+    #         C.LB_TITLE_PADDING_U + (meta_text_font.getsize(meta_text_top)[1] + 5) * 2
+    #     ),
+    #     align = "right",
+    #     text = f"{meta_text_bottom}",
+    #     font = meta_text_font,
+    #     fill = theme_palette["text"],
+    #     anchor="rt"
+    # )
+
 
     # user unit loop
 
