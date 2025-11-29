@@ -313,7 +313,7 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
     draw.text(
         xy = (
             C.LB_WIDTH - C.LB_TITLE_PADDING_L,
-            C.LB_TITLE_PADDING_U + meta_text_font.getsize(meta_text_top)[1] + 5
+            C.LB_TITLE_PADDING_U + meta_text_font.getbbox(meta_text_top)[3] + 5
         ),
         align = "right",
         text = f"{meta_text_middle}",
@@ -325,7 +325,7 @@ def generate_leaderboard_image(guild_id: int, guild_name: str, leaderboard: list
     # draw.text(
     #     xy = (
     #         C.LB_WIDTH - C.LB_TITLE_PADDING_L,
-    #         C.LB_TITLE_PADDING_U + (meta_text_font.getsize(meta_text_top)[1] + 5) * 2
+    #         C.LB_TITLE_PADDING_U + (meta_text_font.getbbox(meta_text_top)[3] + 5) * 2
     #     ),
     #     align = "right",
     #     text = f"{meta_text_bottom}",
