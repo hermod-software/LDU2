@@ -4,6 +4,7 @@ import asyncio
 import random
 import time
 import re
+from datetime import datetime, timezone
 
 from components.function.logging import log
 from components.function.savedata import set_guild_attribute, get_guild_attribute, get_guild_member_attribute, set_guild_member_attribute
@@ -451,12 +452,18 @@ class Levels(commands.Cog):
 
 
     @discord.app_commands.command(name="rank", description="get your rank in the leaderboard.")
-    async def rank(self, interaction: discord.Interaction):
+    async def rank(self, interaction: discord.Interaction, target: discord.Member=None):
         confighandler = self.confighandlers.get(interaction.guild.id, None)
         if confighandler is None:
             log(f"~1rank: could not find config handler for guild {interaction.guild.name}")
             await interaction.response.send_message("there was an error with this guild's confighandler", ephemeral=True)
             return
+        
+        if target is None:
+            target = interaction.user
+            self = True
+        else:
+            self = False
 
         theme = confighandler.get_attribute("colour", fallback=(40, 40, 40))
 
@@ -465,15 +472,17 @@ class Levels(commands.Cog):
             confighandler=confighandler
         )
 
-        user_id = interaction.user.id
+        user_id = target.id
         user_entry = None
         for entry in leaderboard:
             if entry[2] == user_id:
                 user_entry = entry
                 break
 
+        
+
         if not user_entry:
-            await interaction.response.send_message("you are not on the leaderboard yet!", ephemeral=True)
+            await interaction.response.send_message(f"{'you' if self else 'they'} are not on the leaderboard yet!", ephemeral=True)
             return
 
         image_path = lvimg.generate_rank_card_image(
@@ -490,8 +499,13 @@ class Levels(commands.Cog):
 
         image_path = str(image_path)
         file = discord.File(image_path, filename="rank_card.png")
-        await interaction.response.send_message(file=file)
 
+        # if it's before 10th december 2025
+        if datetime.now(timezone.utc) < datetime(2025, 12, 10, tzinfo=timezone.utc):
+            await interaction.response.send_message(content="-# (noticed a change in your level? the xp system has been tweaked in c-ldu version 1.2.5 to make higher levels more achievable!)",file=file)
+
+        else:
+            await interaction.response.send_message(file=file)
 
     # TODO: make themes a proper config thing
 
@@ -521,7 +535,12 @@ class Levels(commands.Cog):
 
         file = discord.File(image_path, filename="leaderboard.png")
 
-        await interaction.response.send_message(file=file)
+        # if it's before 3rd december 2025 let people know about the xp changes
+        if datetime.now(timezone.utc) < datetime(2025, 12, 3, tzinfo=timezone.utc):
+            await interaction.response.send_message(content="-# (noticed a change in your level? the xp system has been tweaked in c-ldu version 1.2.5 to make higher levels more achievable!)",file=file)
+
+        else:
+            await interaction.response.send_message(file=file)
 
             
 

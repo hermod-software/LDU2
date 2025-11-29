@@ -97,7 +97,10 @@ class ConfigHandler:
                 return fallback
         else:
             if not fallback is None: # log only if fallback is provided
-                log(f"~1attribute {attribute} not found in config {self.label} for guild {self.guild_name}, returning fallback")
+                #log(f"~1attribute {attribute} not found in config {self.label} for guild {self.guild_name}, returning fallback")
+                # not logging now because its annoying me
+                return fallback
+            else:
                 return fallback
     
     def get_nested_attribute(self, keys_dict_key, nested_key, fallback=None):

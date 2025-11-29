@@ -8,33 +8,28 @@ from components.function.savedata import get_guild_attribute, get_guild_member_a
 from components.shared_instances import bot, POINTS_DATABASE
 from components.function.logging import log
 
+K_FALLBACK = 5.34
+
 def points_to_level(points: int, confighandler: ConfigHandler) -> tuple[int, int]:
     "returns level, remaining points to next level"
 
-    base = confighandler.get_attribute("base")
-    growth_rate = confighandler.get_attribute("growth_rate")
-    
-    level = 0
-    total_required = base
-    cumulative_points = 0
+    k = confighandler.get_attribute("k", fallback=K_FALLBACK)
 
-    while points >= total_required:
-        cumulative_points += total_required     # add points needed for the current level
-        points -= total_required                # deduct points for the current level
-        level += 1                              # increment level
-        total_required = math.floor(base * (growth_rate ** level))  # points needed for the next level
+    level = int(math.sqrt(points) / k)
 
-    remaining_points = total_required - points
+    xp_current = (level * k) ** 2       # total xp required to reach current level
+    xp_next = ((level + 1) * k) ** 2    #  total xp required to reach next level
 
-    return level, remaining_points
+    remaining_points = xp_next - points # points needed to reach next level from where we are now
+
+    return level, int(remaining_points)
+
 
 def level_to_points(level: int, confighandler: ConfigHandler) -> int:
-    base = confighandler.get_attribute("base")
-    growth_rate = confighandler.get_attribute("growth_rate")
-    total_points = 0
-    for l in range(level):
-        total_points += math.floor(base * (growth_rate ** l))
-    return total_points
+    k = confighandler.get_attribute("k", fallback=K_FALLBACK)
+
+    # total xp required to reach this level
+    return int((level * k) ** 2)
 
 def get_guild_leaderboard(guild_id: int) -> list[tuple[int, int]]:
     points_db = get_guild_attribute(guild_id, "points_data")
